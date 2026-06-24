@@ -44,6 +44,17 @@ class RecipesTable
             ])
             ->defaultSort('updated_at', 'desc')
             ->recordActions([
+                Action::make('view')
+                    ->label('View')
+                    ->icon(Heroicon::OutlinedEye)
+                    ->url(function (Recipe $record): ?string {
+                        $revision = $record->displayRevision();
+
+                        return $revision
+                            ? RecipeRevisionResource::getUrl('view', ['record' => $revision])
+                            : null;
+                    })
+                    ->visible(fn (Recipe $record): bool => $record->revisions()->exists()),
                 Action::make('editContent')
                     ->label('Edit content')
                     ->icon(Heroicon::OutlinedPencilSquare)

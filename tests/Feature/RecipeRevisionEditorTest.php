@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\RecipeRevisions\Pages\EditRecipeRevision;
+use App\Filament\Resources\RecipeRevisions\Pages\ViewRecipeRevision;
 use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Filament\Resources\Recipes\Pages\CreateRecipe;
 use App\Models\Ingredient;
@@ -129,6 +130,55 @@ class RecipeRevisionEditorTest extends TestCase
 
         // ...and the user is redirected to that revision's full content editor.
         $component->assertRedirect(RecipeRevisionResource::getUrl('edit', ['record' => $revision]));
+    }
+
+    public function test_view_page_renders_a_revisions_content(): void
+    {
+        $user = $this->owner();
+        $recipe = $this->recipeFor($user);
+
+        $revision = $recipe->revisions()->create([
+            'locale' => 'en',
+            'version_number' => 1,
+            'status' => 'published',
+            'title' => 'Pancakes',
+            'created_by_user_id' => $user->id,
+            'published_at' => now(),
+        ]);
+        $group = $revision->ingredientGroups()->create(['title' => 'Batter', 'sort_order' => 1]);
+        $flour = Ingredient::create(['canonical_name' => 'flour']);
+        $revision->ingredients()->create([
+            'group_id' => $group->id,
+            'ingredient_id' => $flour->id,
+            'quantity' => 150,
+            'sort_order' => 1,
+        ]);
+        $section = $revision->instructionSections()->create(['title' => 'Cook', 'sort_order' => 1]);
+        $revision->instructionSteps()->create([
+            'section_id' => $section->id,
+            'instruction_text' => 'Mix and fry.',
+            'sort_order' => 1,
+        ]);
+
+        Livewire::test(ViewRecipeRevision::class, ['record' => $revision->getKey()])
+            ->assertOk()
+            ->assertSee('Pancakes')
+            ->assertSee('Batter')
+            ->assertSee('flour')
+            ->assertSee('Mix and fry.');
+    }
+
+    public function test_display_revision_prefers_published_default_locale_latest(): void
+    {
+        $user = $this->owner();
+        $recipe = $this->recipeFor($user); // default_locale = 'en'
+
+        $recipe->revisions()->create(['locale' => 'en', 'version_number' => 1, 'status' => 'published', 'title' => 'en v1', 'created_by_user_id' => $user->id, 'published_at' => now()]);
+        $recipe->revisions()->create(['locale' => 'en', 'version_number' => 2, 'status' => 'draft', 'title' => 'en v2 draft', 'created_by_user_id' => $user->id]);
+        $recipe->revisions()->create(['locale' => 'sv', 'version_number' => 3, 'status' => 'published', 'title' => 'sv v3', 'created_by_user_id' => $user->id, 'published_at' => now()]);
+
+        // Published beats the higher-versioned draft; among published, the default locale (en) wins.
+        $this->assertSame('en v1', $recipe->displayRevision()->title);
     }
 
     public function test_editing_a_published_revision_redirects_to_a_draft_fork(): void

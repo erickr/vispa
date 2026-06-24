@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\RecipeRevisions;
 
 use App\Filament\Resources\RecipeRevisions\Pages\EditRecipeRevision;
+use App\Filament\Resources\RecipeRevisions\Pages\ViewRecipeRevision;
 use App\Filament\Resources\RecipeRevisions\Schemas\RecipeRevisionForm;
 use App\Models\RecipeRevision;
 use Filament\Resources\Resource;
@@ -36,6 +37,7 @@ class RecipeRevisionResource extends Resource
     public static function getPages(): array
     {
         return [
+            'view' => ViewRecipeRevision::route('/{record}'),
             'edit' => EditRecipeRevision::route('/{record}/edit'),
         ];
     }

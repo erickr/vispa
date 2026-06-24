@@ -49,4 +49,17 @@ class Recipe extends Model
     {
         return $this->hasMany(RecipeLocaleSlug::class);
     }
+
+    /**
+     * The revision to surface when viewing the recipe: prefer a published one, then the default
+     * locale, then the highest version number.
+     */
+    public function displayRevision(): ?RecipeRevision
+    {
+        return $this->revisions()
+            ->orderByRaw("(status = 'published') desc")
+            ->orderByRaw('(locale = ?) desc', [$this->default_locale])
+            ->orderByDesc('version_number')
+            ->first();
+    }
 }

@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Filament\Resources\RecipeRevisions\Pages;
+
+use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
+use App\Filament\Resources\RecipeRevisions\Schemas\RecipeRevisionInfolist;
+use App\Filament\Resources\Recipes\RecipeResource;
+use Filament\Actions\Action;
+use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Schema;
+
+class ViewRecipeRevision extends ViewRecord
+{
+    protected static string $resource = RecipeRevisionResource::class;
+
+    public function infolist(Schema $schema): Schema
+    {
+        return RecipeRevisionInfolist::configure($schema);
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('edit')
+                ->label('Edit content')
+                ->url(fn (): string => RecipeRevisionResource::getUrl('edit', ['record' => $this->record])),
+        ];
+    }
+
+    public function getBreadcrumb(): string
+    {
+        return "{$this->record->locale} v{$this->record->version_number}";
+    }
+
+    /**
+     * This sub-resource has no index page; anchor navigation on the parent recipe instead.
+     */
+    public function getBreadcrumbs(): array
+    {
+        return [
+            RecipeResource::getUrl('edit', ['record' => $this->record->recipe_id]) => 'Recipe',
+            $this->getBreadcrumb(),
+        ];
+    }
+}
