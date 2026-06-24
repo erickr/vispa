@@ -73,7 +73,15 @@ class RecipeRevisionForm
                                         ->relationship('ingredient', 'canonical_name')
                                         ->searchable()
                                         ->preload()
-                                        ->required(),
+                                        ->required()
+                                        // Add a missing ingredient to the global catalog without leaving the editor.
+                                        ->createOptionForm([
+                                            TextInput::make('canonical_name')
+                                                ->label('Ingredient name')
+                                                ->required()
+                                                ->maxLength(255)
+                                                ->unique('ingredients', 'canonical_name'),
+                                        ]),
 
                                     TextInput::make('quantity')
                                         ->placeholder('1, 1.5, 1/2 ...')
