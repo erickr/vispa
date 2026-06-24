@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\RecipeRevisions\Pages\EditRecipeRevision;
+use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
+use App\Filament\Resources\Recipes\Pages\CreateRecipe;
 use App\Models\Ingredient;
 use App\Models\Recipe;
 use App\Models\RecipeRevision;
@@ -103,6 +105,30 @@ class RecipeRevisionEditorTest extends TestCase
         $this->assertCount(2, $steps);
         $steps->each(fn ($s) => $this->assertSame($revision->id, $s->recipe_revision_id));
         $this->assertSame(120, $steps[1]->timer_seconds);
+    }
+
+    public function test_creating_a_recipe_seeds_a_draft_and_lands_in_the_content_editor(): void
+    {
+        $user = $this->owner();
+
+        $component = Livewire::test(CreateRecipe::class)
+            ->fillForm([
+                'default_locale' => 'sv',
+                'visibility' => 'private',
+            ])
+            ->call('create')
+            ->assertHasNoErrors();
+
+        $recipe = Recipe::where('owner_user_id', $user->id)->firstOrFail();
+
+        // A first draft revision is seeded in the recipe's default locale...
+        $revision = $recipe->revisions()->firstOrFail();
+        $this->assertSame('draft', $revision->status);
+        $this->assertSame('sv', $revision->locale);
+        $this->assertSame(1, $revision->version_number);
+
+        // ...and the user is redirected to that revision's full content editor.
+        $component->assertRedirect(RecipeRevisionResource::getUrl('edit', ['record' => $revision]));
     }
 
     public function test_editing_a_published_revision_redirects_to_a_draft_fork(): void

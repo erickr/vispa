@@ -2,9 +2,13 @@
 
 namespace App\Filament\Resources\Recipes\Tables;
 
+use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
+use App\Models\Recipe;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -40,7 +44,18 @@ class RecipesTable
             ])
             ->defaultSort('updated_at', 'desc')
             ->recordActions([
-                EditAction::make(),
+                Action::make('editContent')
+                    ->label('Edit content')
+                    ->icon(Heroicon::OutlinedPencilSquare)
+                    ->url(function (Recipe $record): ?string {
+                        $revision = $record->revisions()->orderByDesc('version_number')->first();
+
+                        return $revision
+                            ? RecipeRevisionResource::getUrl('edit', ['record' => $revision])
+                            : null;
+                    })
+                    ->visible(fn (Recipe $record): bool => $record->revisions()->exists()),
+                EditAction::make()->label('Settings'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
