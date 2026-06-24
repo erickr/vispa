@@ -2,16 +2,21 @@
 
 namespace App\Filament\Resources\Recipes\Schemas;
 
+use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 
 class RecipeForm
 {
@@ -140,7 +145,27 @@ class RecipeForm
                             $data['created_by_user_id'] = Auth::id();
 
                             return $data;
-                        }),
+                        })
+                        ->extraItemActions([
+                            Action::make('editContent')
+                                ->label('Edit content')
+                                ->icon(Heroicon::OutlinedPencilSquare)
+                                ->action(function (array $arguments, Repeater $component, Component $livewire): void {
+                                    $record = $component->getCachedExistingRecords()[$arguments['item']] ?? null;
+
+                                    if (! $record) {
+                                        Notification::make()
+                                            ->title('Save the recipe first')
+                                            ->body('Save this new revision before editing its ingredients and instructions.')
+                                            ->warning()
+                                            ->send();
+
+                                        return;
+                                    }
+
+                                    $livewire->redirect(RecipeRevisionResource::getUrl('edit', ['record' => $record]));
+                                }),
+                        ]),
                 ]),
             ])->columnSpanFull(),
         ]);
