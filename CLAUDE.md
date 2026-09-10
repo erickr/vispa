@@ -32,7 +32,11 @@ The recipe domain follows a deliberate split. When touching recipes, keep the la
 
 1. **`Recipe`** — the stable identity (owner, visibility, fork lineage via `forked_from_recipe_id` / `forked_from_revision_id`, `default_locale` as a display fallback). Holds no content.
 2. **`RecipeRevision`** — a versioned, **single-locale** snapshot of content. Carries `locale`, `version_number`, `status`, `title`, `description`, `notes`, `servings`, times, `published_at`. Unique constraint is `(recipe_id, locale, version_number)` — each locale is an independent revision track (`en-v1` and `sv-v1` coexist). `UPDATED_AT = null` because revisions are append-only: never mutate a published revision, create a new one. All structured content (`ingredientGroups`, `ingredients`, `instructionSections`, `instructionSteps`) hangs off the revision and is in that revision's locale.
-3. **Revision-scoped entities hold their own text** — `RecipeRevisionIngredientGroup.title`, `RecipeRevisionIngredient.preparation_note`, `RecipeRevisionInstructionSection.title`, `RecipeRevisionInstructionStep.instruction_text`. No sibling `*Translation` tables; text is in the revision's locale.
+3. **Revision-scoped entities hold their own text** — `RecipeRevisionIngredientGroup.title`, `RecipeRevisionIngredient.preparation_note`, `RecipeRevisionInstructionSection.title`, `RecipeRevisionInstructionStep.instruction_text`, `RecipeRevisionImage.alt_text`. No sibling `*Translation` tables; text is in the revision's locale.
+
+**Where a recipe came from** is split across the two layers on purpose: `recipes.source_url` is stable across every locale and version (and is what "only saved links" filters on), while `recipe_revisions.source_credit` is the prose credit and therefore lives in the revision's locale. Content is optional end-to-end — a revision with a title and nothing else is valid, and `RecipeRevision::isLinkOnly()` names that state. The editor shows a `Callout` for the link and an `EmptyState` per empty tab rather than a blank form.
+
+**Photos** (`recipe_revision_images`) hang off the revision like the rest of the content, on the `public` disk under `recipe-images/` (needs `php artisan storage:link`). `is_cover` is kept unique per revision by a `saved` hook on the model that demotes siblings with a query-builder update (deliberately event-free, so it cannot re-enter). `draftFork()` clones the image rows but shares the stored files, so deleting one revision never orphans another's photo — the flip side is that files are not garbage-collected on delete.
 
 `RecipeLocaleSlug` keeps a recipe's public URL slug per locale, stable across revisions.
 
@@ -58,6 +62,7 @@ Domain migrations are dated `2026_05_24_*` and ordered by FK dependency (recipes
 - **Two compose files exist** (`compose.yaml` and `docker-compose.yml`). Compose uses `compose.yaml` and warns about the duplicate. Edit `compose.yaml`; `docker-compose.yml` is the leftover Sail default.
 - **Append-only revisions**: do not edit a `RecipeRevision` row's content after publish — clone into a new revision instead. This is why `RecipeRevision::UPDATED_AT = null`.
 - **One revision = one locale**: do not "translate" a revision by adding fields or sibling rows; create a new `RecipeRevision` with a different `locale` value instead.
+- **`draftFork()` must copy everything**: when you add a revision-scoped table, extend `RecipeRevision::draftFork()` to clone it, or editing a published revision will silently drop that content.
 - **Test DB**: `phpunit.xml` forces `DB_DATABASE=testing`. The MySQL container creates this DB via `docker/mysql/create-testing-database.sh` at first boot — if tests fail with "unknown database 'testing'" on a fresh volume, ensure that script ran (or `sail down -v` to reset).
 - **Queue/cache/session** default to `database` driver in `.env` — tables exist via `0001_01_01_*` migrations. Tests override to `sync`/`array` (see `phpunit.xml`), so don't rely on persisted queue state in tests.
 - App locale defaults to `en` (see `APP_LOCALE`), but the domain is locale-aware end-to-end — never assume a single locale when querying revision content.

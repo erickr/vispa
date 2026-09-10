@@ -10,8 +10,10 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class RecipesTable
 {
@@ -29,6 +31,14 @@ class RecipesTable
                         'unlisted' => 'warning',
                         default => 'gray',
                     }),
+                TextColumn::make('source_url')
+                    ->label('From')
+                    ->formatStateUsing(fn (?string $state, Recipe $record): string => $record->sourceHost() ?? '—')
+                    ->url(fn (?string $state): ?string => $state)
+                    ->openUrlInNewTab()
+                    ->badge()
+                    ->color('info')
+                    ->placeholder('—'),
                 TextColumn::make('revisions_count')
                     ->counts('revisions')
                     ->label('Revisions')
@@ -41,6 +51,9 @@ class RecipesTable
                     'unlisted' => 'Unlisted',
                     'public' => 'Public',
                 ]),
+                Filter::make('saved_links')
+                    ->label('Only saved links')
+                    ->query(fn (Builder $query): Builder => $query->whereNotNull('source_url')),
             ])
             ->defaultSort('updated_at', 'desc')
             ->recordActions([

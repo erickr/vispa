@@ -22,6 +22,7 @@ class RecipeRevision extends Model
         'title',
         'description',
         'notes',
+        'source_credit',
         'servings',
         'prep_time_minutes',
         'cook_time_minutes',
@@ -66,6 +67,30 @@ class RecipeRevision extends Model
         return $this->hasMany(RecipeRevisionInstructionStep::class)->orderBy('sort_order');
     }
 
+    public function images(): HasMany
+    {
+        return $this->hasMany(RecipeRevisionImage::class)->orderBy('sort_order');
+    }
+
+    /**
+     * The photo to lead with: the one flagged as cover, else the first in sort order.
+     */
+    public function coverImage(): ?RecipeRevisionImage
+    {
+        // reorder() drops the relation's own sort_order clause, so the flag wins and sort order
+        // only breaks the tie.
+        return $this->images()->reorder()->orderByDesc('is_cover')->orderBy('sort_order')->first();
+    }
+
+    /**
+     * A recipe that is nothing but a saved link — no ingredients, no steps. Perfectly valid:
+     * the link is the recipe until someone feels like writing it out.
+     */
+    public function isLinkOnly(): bool
+    {
+        return ! $this->ingredients()->exists() && ! $this->instructionSteps()->exists();
+    }
+
     /**
      * Append-only invariant: a published revision is never mutated. Editing one instead works on a
      * draft fork — a new revision in the same locale (next version number) with all content
@@ -86,6 +111,7 @@ class RecipeRevision extends Model
             'title' => $this->title,
             'description' => $this->description,
             'notes' => $this->notes,
+            'source_credit' => $this->source_credit,
             'servings' => $this->servings,
             'prep_time_minutes' => $this->prep_time_minutes,
             'cook_time_minutes' => $this->cook_time_minutes,
@@ -131,6 +157,17 @@ class RecipeRevision extends Model
                 'instruction_text' => $step->instruction_text,
                 'sort_order' => $step->sort_order,
                 'timer_seconds' => $step->timer_seconds,
+            ]);
+        }
+
+        // Photo rows are cloned; the stored files are shared between revisions, so deleting a
+        // revision never removes a file another revision still points at.
+        foreach ($this->images()->get() as $image) {
+            $draft->images()->create([
+                'path' => $image->path,
+                'alt_text' => $image->alt_text,
+                'is_cover' => $image->is_cover,
+                'sort_order' => $image->sort_order,
             ]);
         }
 

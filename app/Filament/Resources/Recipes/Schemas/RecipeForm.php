@@ -41,6 +41,14 @@ class RecipeForm
                         ->default('private')
                         ->native(false),
 
+                    TextInput::make('source_url')
+                        ->label('Source link')
+                        ->url()
+                        ->maxLength(500)
+                        ->placeholder('https://www.ica.se/recept/...')
+                        ->helperText('Where it came from. A link on its own is a complete recipe — ingredients and instructions are optional.')
+                        ->columnSpanFull(),
+
                     Select::make('forked_from_recipe_id')
                         ->label('Forked from recipe')
                         ->relationship(

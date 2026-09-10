@@ -18,6 +18,7 @@ class Recipe extends Model
         'forked_from_revision_id',
         'default_locale',
         'visibility',
+        'source_url',
     ];
 
     public function owner(): BelongsTo
@@ -48,6 +49,16 @@ class Recipe extends Model
     public function localeSlugs(): HasMany
     {
         return $this->hasMany(RecipeLocaleSlug::class);
+    }
+
+    /**
+     * The bare host of the source link, for showing "ica.se" rather than the whole URL.
+     */
+    public function sourceHost(): ?string
+    {
+        $host = $this->source_url ? parse_url($this->source_url, PHP_URL_HOST) : null;
+
+        return $host ? preg_replace('/^www\./', '', $host) : null;
     }
 
     /**

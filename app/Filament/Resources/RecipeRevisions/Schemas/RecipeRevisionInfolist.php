@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\RecipeRevisions\Schemas;
 
 use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -23,7 +24,36 @@ class RecipeRevisionInfolist
                 TextEntry::make('cook_time_minutes')->label('Cook')->suffix(' min'),
                 TextEntry::make('description')->columnSpanFull(),
                 TextEntry::make('notes')->columnSpanFull(),
+
+                TextEntry::make('recipe.source_url')
+                    ->label('From')
+                    ->url(fn ($state): ?string => $state)
+                    ->openUrlInNewTab()
+                    ->formatStateUsing(fn ($state, $record): string => $record->recipe->sourceHost() ?? $state)
+                    ->placeholder('—')
+                    ->visible(fn ($record): bool => filled($record->recipe?->source_url)),
+
+                TextEntry::make('source_credit')
+                    ->label('With thanks to')
+                    ->visible(fn ($record): bool => filled($record->source_credit))
+                    ->columnSpan(2),
             ])->columns(3),
+
+            Section::make('Photos')
+                ->schema([
+                    RepeatableEntry::make('images')
+                        ->hiddenLabel()
+                        ->schema([
+                            ImageEntry::make('path')
+                                ->hiddenLabel()
+                                ->disk('public')
+                                ->height(160),
+                            TextEntry::make('alt_text')->hiddenLabel()->placeholder('No description'),
+                            IconEntry::make('is_cover')->label('Cover')->boolean(),
+                        ])
+                        ->columns(3),
+                ])
+                ->visible(fn ($record): bool => $record->images()->exists()),
 
             Section::make('Ingredients')->schema([
                 RepeatableEntry::make('ingredientGroups')
