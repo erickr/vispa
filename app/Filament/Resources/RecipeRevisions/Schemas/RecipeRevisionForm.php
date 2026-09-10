@@ -4,6 +4,7 @@ namespace App\Filament\Resources\RecipeRevisions\Schemas;
 
 use App\Models\Ingredient;
 use App\Models\RecipeRevision;
+use App\Models\RecipeRevisionIngredient;
 use App\Models\Unit;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
@@ -294,21 +295,13 @@ class RecipeRevisionForm
             return 'New ingredient';
         }
 
-        $line = trim(implode(' ', array_filter([
-            self::formatQuantity($state['quantity'] ?? null),
+        return RecipeRevisionIngredient::formatLine(
+            RecipeRevisionIngredient::formatQuantity($state['quantity'] ?? null),
             self::unitCode($state['unit_id'] ?? null),
             $name,
-        ])));
-
-        if (filled($state['preparation_note'] ?? null)) {
-            $line .= ', '.$state['preparation_note'];
-        }
-
-        if ($state['optional'] ?? false) {
-            $line .= ' (optional)';
-        }
-
-        return $line;
+            $state['preparation_note'] ?? null,
+            (bool) ($state['optional'] ?? false),
+        );
     }
 
     /**
@@ -336,24 +329,6 @@ class RecipeRevisionForm
         self::$unitCodes ??= Unit::query()->pluck('code', 'id')->all();
 
         return self::$unitCodes[$id] ??= Unit::query()->whereKey($id)->value('code');
-    }
-
-    /**
-     * Trim the decimal(10,3) storage back to something readable: 1.500 -> 1.5, 150.000 -> 150.
-     */
-    public static function formatQuantity(mixed $state): ?string
-    {
-        if ($state === null || $state === '') {
-            return null;
-        }
-
-        if (! is_numeric($state)) {
-            return (string) $state;
-        }
-
-        $value = rtrim(rtrim(number_format((float) $state, 3, '.', ''), '0'), '.');
-
-        return $value === '' ? null : $value;
     }
 
     /**

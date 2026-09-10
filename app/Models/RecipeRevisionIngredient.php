@@ -32,6 +32,59 @@ class RecipeRevisionIngredient extends Model
         ];
     }
 
+    /**
+     * The line as it reads on paper: "150 g butter, softened". Shared by the editor's collapsed
+     * repeater label and the read-only view so the two can never drift apart.
+     */
+    public static function formatLine(
+        ?string $quantity,
+        ?string $unit,
+        ?string $name,
+        ?string $preparationNote = null,
+        bool $optional = false,
+    ): string {
+        $line = trim(implode(' ', array_filter([$quantity, $unit, $name])));
+
+        if (filled($preparationNote)) {
+            $line .= ', '.$preparationNote;
+        }
+
+        if ($optional) {
+            $line .= ' (optional)';
+        }
+
+        return $line;
+    }
+
+    /**
+     * Trim the decimal(10,3) storage back to something readable: 1.500 -> 1.5, 150.000 -> 150.
+     */
+    public static function formatQuantity(mixed $quantity): ?string
+    {
+        if ($quantity === null || $quantity === '') {
+            return null;
+        }
+
+        if (! is_numeric($quantity)) {
+            return (string) $quantity;
+        }
+
+        $value = rtrim(rtrim(number_format((float) $quantity, 3, '.', ''), '0'), '.');
+
+        return $value === '' ? null : $value;
+    }
+
+    public function line(): string
+    {
+        return static::formatLine(
+            static::formatQuantity($this->quantity),
+            $this->unit?->code,
+            $this->ingredient?->canonical_name,
+            $this->preparation_note,
+            (bool) $this->optional,
+        );
+    }
+
     public function revision(): BelongsTo
     {
         return $this->belongsTo(RecipeRevision::class, 'recipe_revision_id');

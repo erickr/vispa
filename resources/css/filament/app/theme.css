@@ -1,0 +1,147 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+/*
+ * Vispa's neutrals. Filament reaches for the gray ramp everywhere, so redefining it here shifts
+ * the whole panel at once: an off-white with a green bias at the light end, aubergine charcoal at
+ * the dark end. Both ends are lifted straight from the mockup.
+ */
+@theme {
+    --color-gray-50: #f3f4ec;
+    --color-gray-100: #ecefe1;
+    --color-gray-200: #e3e5d9;
+    --color-gray-300: #cfd3c1;
+    --color-gray-400: #9d99a8;
+    --color-gray-500: #7d7889;
+    --color-gray-600: #635e70;
+    --color-gray-700: #4a4655;
+    --color-gray-800: #34313c;
+    --color-gray-900: #221f27;
+    --color-gray-950: #151419;
+
+    --radius-lg: 0.6rem;
+}
+
+/* Fraunces carries every heading; Karla does the working text. Both come from the panel's
+   font() / serifFont() registration, so they load once and nothing is hardcoded here. */
+.fi-logo,
+.fi-header-heading,
+.fi-section-header-heading,
+.fi-modal-heading,
+.fi-fo-repeater-item-label {
+    font-family: var(--serif-font-family), Georgia, serif;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+}
+
+.fi-header-heading {
+    font-size: 1.6rem;
+}
+
+/* ---------------------------------------------------------------- the pistachio rail */
+
+.fi-sidebar {
+    background-color: #e2efc6;
+    border-inline-end: 1px solid #cbdea4;
+}
+
+.fi-sidebar .fi-sidebar-item-label {
+    color: #3c5321;
+}
+
+.fi-sidebar .fi-sidebar-item-btn > .fi-icon {
+    color: #5f7d36;
+}
+
+.fi-sidebar .fi-sidebar-group-label {
+    color: #5f7d36;
+    letter-spacing: 0.04em;
+}
+
+.fi-sidebar .fi-sidebar-item:not(.fi-active) > .fi-sidebar-item-btn:hover,
+.fi-sidebar .fi-sidebar-item:not(.fi-active) > .fi-sidebar-item-btn:focus-visible {
+    background-color: #d7e9b4;
+}
+
+.fi-sidebar .fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+    background-color: #ffffff;
+}
+
+.fi-sidebar .fi-sidebar-item.fi-active > .fi-sidebar-item-btn > .fi-icon,
+.fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-label {
+    color: #2f4419;
+}
+
+/* The brand block sits dark against the pistachio, the way the mockup opens. */
+.fi-sidebar-header {
+    background-color: #221f27;
+    border-inline-end-color: #221f27;
+    box-shadow: none;
+}
+
+.fi-sidebar-header .fi-logo {
+    color: #f4f2ed;
+    font-size: 1.5rem;
+}
+
+.dark .fi-sidebar {
+    background-color: #242c19;
+    border-inline-end-color: #3b4724;
+}
+
+.dark .fi-sidebar .fi-sidebar-item-label,
+.dark .fi-sidebar .fi-sidebar-item-btn > .fi-icon,
+.dark .fi-sidebar .fi-sidebar-group-label {
+    color: #c9e09a;
+}
+
+.dark .fi-sidebar .fi-sidebar-item:not(.fi-active) > .fi-sidebar-item-btn:hover,
+.dark .fi-sidebar .fi-sidebar-item:not(.fi-active) > .fi-sidebar-item-btn:focus-visible {
+    background-color: #2c3520;
+}
+
+.dark .fi-sidebar .fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+    background-color: #333f21;
+}
+
+.dark .fi-sidebar .fi-sidebar-item.fi-active > .fi-sidebar-item-btn > .fi-icon,
+.dark .fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-label {
+    color: #e2efc6;
+}
+
+.dark .fi-sidebar-header {
+    background-color: #0f0e13;
+    border-inline-end-color: #0f0e13;
+}
+
+/* ---------------------------------------------------------------- pills and panels */
+
+/* Everything you press is a pill, as in the mockup. */
+.fi-btn {
+    border-radius: 9999px;
+}
+
+.fi-section {
+    border-radius: 0.85rem;
+}
+
+/* Repeater items are the ingredient lines and the instruction steps — give them the same
+   quiet, rounded treatment the mockup's list rows have. */
+.fi-fo-repeater-item {
+    border-radius: 0.7rem;
+}
+
+.fi-fo-repeater-item-header:hover {
+    background-color: var(--color-gray-50);
+}
+
+.dark .fi-fo-repeater-item-header:hover {
+    background-color: var(--color-gray-800);
+}
+
+/* A collapsed ingredient reads as a sentence, so let it breathe rather than sit at label size. */
+.fi-fo-repeater-item-label {
+    font-size: 0.975rem;
+}

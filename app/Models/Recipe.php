@@ -67,6 +67,20 @@ class Recipe extends Model
      */
     public function displayRevision(): ?RecipeRevision
     {
+        // Sorted in PHP when the caller has already eager-loaded revisions — the recipes table
+        // renders a title, a status and a photo per row, and a query each would be N+1 three
+        // times over. The sort key mirrors the SQL ordering below exactly.
+        if ($this->relationLoaded('revisions')) {
+            return $this->revisions
+                ->sortByDesc(fn (RecipeRevision $revision): string => sprintf(
+                    '%d%d%09d',
+                    $revision->status === 'published' ? 1 : 0,
+                    $revision->locale === $this->default_locale ? 1 : 0,
+                    $revision->version_number,
+                ))
+                ->first();
+        }
+
         return $this->revisions()
             ->orderByRaw("(status = 'published') desc")
             ->orderByRaw('(locale = ?) desc', [$this->default_locale])
