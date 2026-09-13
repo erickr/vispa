@@ -1,0 +1,89 @@
+name: Tests
+
+# The platform's test suite. Firmware under src/ is built with PlatformIO and
+# is not covered here, so the workflow only reacts to changes in platform/.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'platform/**'
+      - '.github/workflows/tests.yml'
+  pull_request:
+    paths:
+      - 'platform/**'
+      - '.github/workflows/tests.yml'
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: platform
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    name: PHP 8.3 / MySQL 8.4
+
+    # Matches the Sail setup: the suite runs against MySQL, not SQLite.
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -ppassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    # Real environment variables win over .env, so these override the Docker
+    # hostnames that only resolve inside Sail.
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: testing
+      DB_USERNAME: root
+      DB_PASSWORD: password
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: 8.3
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, mysql, pdo_mysql, intl
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare the environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: platform/package-lock.json
+
+      # The public pages load their CSS through @vite, so the build manifest
+      # has to exist before any test renders one.
+      - name: Build frontend assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Execute tests
+        run: php artisan test

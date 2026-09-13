@@ -1,0 +1,87 @@
+name: CD
+
+# Triggered directly off the branch while the pipeline is being iterated on, so
+# it can be exercised without merging to main first. Once the steps are proven,
+# swap back to the workflow_run block below and merge this file to main --
+# workflow_run only fires for workflow files that live on the default branch.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# on:
+#   workflow_run:
+#     workflows: ["Tests"]
+#     types: [ completed ]
+#     branches: [ deploy-test ]
+
+# Needed to force-push the built assets to the `deploy` branch.
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: `git push -f` out of a shallow clone is rejected.
+          fetch-depth: 0
+          # Under workflow_run, checkout defaults to the DEFAULT branch, not the
+          # branch that triggered the upstream run. Uncomment alongside the
+          # workflow_run trigger so the right commit gets built.
+          # ref: ${{ github.event.workflow_run.head_sha }}
+
+      # Matches tests.yml so the deployed build runs on the version the suite
+      # was green against.
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.3
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, mysql, pdo_mysql, intl
+          coverage: none
+
+      # Also runs filament:upgrade via post-autoload-dump, which publishes
+      # Filament's assets into platform/public/.
+      - name: Install Composer dependencies
+        working-directory: platform
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      # Vite 8 requires Node 20+.
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: platform/package-lock.json
+
+      - name: Build frontend assets
+        working-directory: platform
+        run: |
+          npm ci
+          npm run build
+
+      # platform/public/build and the published Filament assets are gitignored
+      # for local work, so they need -f to make it onto the deploy branch. The
+      # server pulls this branch and never builds assets itself.
+      - name: Commit built assets
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git checkout -B deploy
+          git add -f platform/public/
+          git commit -m "Preparing release (frontend assets built): $(date)"
+          git push -f origin deploy
+
+      - name: Setup SSH Keys and known_hosts
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
+          mkdir -p ~/.ssh/
+          ssh-keyscan server10.serverdrift.com >> ~/.ssh/known_hosts
+          ssh itomat@server10.serverdrift.com -C whoami
+          scp deploy/server_deploy.sh itomat@server10.serverdrift.com:vispa.itomat.se/
+          ssh itomat@server10.serverdrift.com -C "chmod +x vispa.itomat.se/server_deploy.sh"
+          ssh itomat@server10.serverdrift.com -C "cd vispa.itomat.se/current/ && ../server_deploy.sh"
