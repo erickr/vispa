@@ -42,9 +42,8 @@ jobs:
           coverage: none
 
       # Also runs filament:upgrade via post-autoload-dump, which publishes
-      # Filament's assets into platform/public/.
+      # Filament's assets into public/.
       - name: Install Composer dependencies
-        working-directory: platform
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
       # Vite 8 requires Node 20+.
@@ -53,15 +52,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: platform/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Build frontend assets
-        working-directory: platform
         run: |
           npm ci
           npm run build
 
-      # platform/public/build and the published Filament assets are gitignored
+      # public/build and the published Filament assets are gitignored
       # for local work, so they need -f to make it onto the deploy branch. The
       # server pulls this branch and never builds assets itself.
       - name: Commit built assets
@@ -69,7 +67,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git checkout -B deploy
-          git add -f platform/public/
+          git add -f public/
           git commit -m "Preparing release (frontend assets built): $(date)"
           git push -f origin deploy
 
