@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\EditProfile;
+use App\Http\Middleware\SetUserLocale;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -29,6 +31,7 @@ class AppPanelProvider extends PanelProvider
             ->path('app')
             ->viteTheme('resources/css/filament/app/theme.css')
             ->login()
+            ->profile(EditProfile::class, isSimple: false)
             ->brandName('Vispa')
             ->brandLogo(fn () => view('filament.brand'))
             ->font('Karla')
@@ -82,6 +85,8 @@ class AppPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                // After Authenticate, so the user is resolved and their language choice applies.
+                SetUserLocale::class,
             ]);
     }
 }
