@@ -20,26 +20,20 @@ use Filament\Support\Icons\Heroicon;
 
 class RecipeRevisionInfolist
 {
-    private const STATUS_WORDS = [
-        'published' => 'Ready',
-        'draft' => 'Still testing',
-        'archived' => 'Put away',
-    ];
-
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
 
             // Where it came from, first — for a saved link this is the recipe.
-            Callout::make(fn (RecipeRevision $record): string => $record->recipe?->sourceHost() ?? 'Saved link')
+            Callout::make(fn (RecipeRevision $record): string => $record->recipe?->sourceHost() ?? __('revision.source.saved_link'))
                 ->description(fn (RecipeRevision $record): string => $record->source_credit
-                    ?: 'The original lives on the web.')
+                    ?: __('revision.source.description_short'))
                 ->icon(Heroicon::OutlinedLink)
                 ->color('info')
                 ->visible(fn (RecipeRevision $record): bool => filled($record->recipe?->source_url))
                 ->footerActions([
                     Action::make('openSource')
-                        ->label('Open the original')
+                        ->label(__('revision.source.open'))
                         ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
                         ->link()
                         ->url(fn (RecipeRevision $record): ?string => $record->recipe?->source_url)
@@ -61,37 +55,39 @@ class RecipeRevisionInfolist
 
                         TextEntry::make('description')
                             ->hiddenLabel()
-                            ->placeholder('No description yet.')
+                            ->placeholder(__('revision.infolist.no_description'))
                             ->columnSpan(fn (RecipeRevision $record): int => $record->coverImage() ? 2 : 3),
                     ]),
 
                     Grid::make(['default' => 2, 'md' => 4])->schema([
                         TextEntry::make('status')
+                            ->label(__('revision.fields.status'))
                             ->badge()
-                            ->formatStateUsing(fn (string $state): string => self::STATUS_WORDS[$state] ?? $state)
+                            ->formatStateUsing(fn (string $state): string => RecipeRevision::statusWord($state))
                             ->color(fn (string $state): string => match ($state) {
                                 'published' => 'success',
                                 'draft' => 'warning',
                                 default => 'gray',
                             }),
-                        TextEntry::make('servings')->placeholder('—'),
-                        TextEntry::make('prep_time_minutes')->label('Hands on')->suffix(' min')->placeholder('—'),
-                        TextEntry::make('cook_time_minutes')->label('Cooking')->suffix(' min')->placeholder('—'),
+                        TextEntry::make('servings')->label(__('revision.fields.servings'))->placeholder('—'),
+                        TextEntry::make('prep_time_minutes')->label(__('revision.infolist.hands_on'))->suffix(' min')->placeholder('—'),
+                        TextEntry::make('cook_time_minutes')->label(__('revision.infolist.cooking'))->suffix(' min')->placeholder('—'),
                     ]),
 
                     TextEntry::make('notes')
+                        ->label(__('revision.fields.notes'))
                         ->placeholder('—')
                         ->visible(fn (RecipeRevision $record): bool => filled($record->notes))
                         ->columnSpanFull(),
                 ]),
 
             // Nothing written down at all: say so once rather than showing two empty sections.
-            EmptyState::make('Saved as a link, and that is plenty')
-                ->description('No ingredients or steps have been written down for this one.')
+            EmptyState::make(__('revision.infolist.link_only_heading'))
+                ->description(__('revision.infolist.link_only_description'))
                 ->icon(Heroicon::OutlinedLink)
                 ->visible(fn (RecipeRevision $record): bool => $record->isLinkOnly()),
 
-            Section::make('What you need')
+            Section::make(__('revision.infolist.ingredients_heading'))
                 ->visible(fn (RecipeRevision $record): bool => $record->ingredients()->exists())
                 ->schema([
                     RepeatableEntry::make('ingredientGroups')
@@ -102,7 +98,7 @@ class RecipeRevisionInfolist
                                 ->hiddenLabel()
                                 ->weight(FontWeight::Bold)
                                 ->color('primary')
-                                ->formatStateUsing(fn (?string $state): string => $state ?: 'Ungrouped'),
+                                ->formatStateUsing(fn (?string $state): string => $state ?: __('revision.items.ungrouped')),
 
                             // One line per ingredient, read as prose rather than laid out in columns.
                             RepeatableEntry::make('ingredients')
@@ -116,7 +112,7 @@ class RecipeRevisionInfolist
                         ]),
                 ]),
 
-            Section::make('How to make it')
+            Section::make(__('revision.infolist.instructions_heading'))
                 ->visible(fn (RecipeRevision $record): bool => $record->instructionSteps()->exists())
                 ->schema([
                     RepeatableEntry::make('instructionSections')
@@ -127,7 +123,7 @@ class RecipeRevisionInfolist
                                 ->hiddenLabel()
                                 ->weight(FontWeight::Bold)
                                 ->color('primary')
-                                ->formatStateUsing(fn (?string $state): string => $state ?: 'Steps'),
+                                ->formatStateUsing(fn (?string $state): string => $state ?: __('revision.items.steps')),
 
                             RepeatableEntry::make('steps')
                                 ->hiddenLabel()
@@ -136,18 +132,18 @@ class RecipeRevisionInfolist
                                     TextEntry::make('instruction_text')
                                         // Filament writes sort_order 1-based and rewrites it on
                                         // reorder, so it is the step number the cook reads.
-                                        ->label(fn (RecipeRevisionInstructionStep $record): string => 'Step '.$record->sort_order)
+                                        ->label(fn (RecipeRevisionInstructionStep $record): string => __('revision.infolist.step_number', ['number' => $record->sort_order]))
                                         ->size(TextSize::Medium),
 
                                     TextEntry::make('timer_seconds')
-                                        ->label('Timer')
+                                        ->label(__('revision.infolist.timer'))
                                         ->suffix(' s')
                                         ->visible(fn (RecipeRevisionInstructionStep $record): bool => filled($record->timer_seconds)),
                                 ]),
                         ]),
                 ]),
 
-            Section::make('Photos')
+            Section::make(__('revision.infolist.photos_heading'))
                 ->visible(fn (RecipeRevision $record): bool => $record->images()->exists())
                 ->schema([
                     RepeatableEntry::make('images')
@@ -164,17 +160,17 @@ class RecipeRevisionInfolist
                                 ->hiddenLabel()
                                 ->size(TextSize::ExtraSmall)
                                 ->color('gray')
-                                ->placeholder('No description'),
+                                ->placeholder(__('revision.infolist.no_photo_description')),
                         ]),
                 ]),
 
-            Section::make('Revision')
+            Section::make(__('revision.infolist.revision_heading'))
                 ->collapsed()
                 ->schema([
                     Grid::make(3)->schema([
-                        TextEntry::make('locale')->badge(),
-                        TextEntry::make('version_number')->label('Version')->prefix('v'),
-                        TextEntry::make('published_at')->dateTime()->placeholder('Not published'),
+                        TextEntry::make('locale')->label(__('revision.fields.locale'))->badge(),
+                        TextEntry::make('version_number')->label(__('revision.fields.version'))->prefix('v'),
+                        TextEntry::make('published_at')->label(__('revision.fields.published_at'))->dateTime()->placeholder(__('revision.infolist.not_published')),
                     ]),
                 ]),
         ])->columns(1);

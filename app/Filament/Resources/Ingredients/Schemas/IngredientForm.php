@@ -14,30 +14,33 @@ class IngredientForm
         return $schema->components([
             Section::make()->schema([
                 TextInput::make('canonical_name')
+                    ->label(__('ingredient.fields.canonical_name'))
                     ->required()
                     ->maxLength(255)
                     ->columnSpanFull(),
             ]),
 
-            Section::make('Translations')
-                ->description('Localized display names for this ingredient.')
+            Section::make(__('ingredient.translations.heading'))
+                ->description(__('ingredient.translations.description'))
                 ->schema([
                     Repeater::make('translations')
                         ->relationship()
                         ->hiddenLabel()
                         ->schema([
                             TextInput::make('locale')
+                                ->label(__('ingredient.fields.locale'))
                                 ->required()
                                 ->maxLength(10)
-                                ->placeholder('en, sv, ...'),
+                                ->placeholder(__('ingredient.fields.locale_placeholder')),
                             TextInput::make('name')
+                                ->label(__('ingredient.fields.name'))
                                 ->required()
                                 ->maxLength(255),
                         ])
                         ->columns(2)
                         ->defaultItems(0)
                         ->itemLabel(fn (array $state): ?string => $state['locale'] ?? null)
-                        ->addActionLabel('Add translation'),
+                        ->addActionLabel(__('ingredient.translations.add')),
                 ]),
         ]);
     }

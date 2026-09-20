@@ -36,15 +36,15 @@ class RecipeRevisionForm
 
             // Where the recipe came from, in front of everything else — for a saved link this is
             // often the whole recipe.
-            Callout::make(fn (?RecipeRevision $record): string => $record?->recipe?->sourceHost() ?? 'Saved link')
+            Callout::make(fn (?RecipeRevision $record): string => $record?->recipe?->sourceHost() ?? __('revision.source.saved_link'))
                 ->description(fn (?RecipeRevision $record): string => $record?->source_credit
-                    ?: 'The original lives on the web. Copy bits in whenever you feel like it.')
+                    ?: __('revision.source.description'))
                 ->icon(Heroicon::OutlinedLink)
                 ->color('info')
                 ->visible(fn (?RecipeRevision $record): bool => filled($record?->recipe?->source_url))
                 ->footerActions([
                     Action::make('openSource')
-                        ->label('Open the original')
+                        ->label(__('revision.source.open'))
                         ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
                         ->link()
                         ->url(fn (?RecipeRevision $record): ?string => $record?->recipe?->source_url)
@@ -54,55 +54,59 @@ class RecipeRevisionForm
 
             Tabs::make()->tabs([
 
-                Tab::make('Details')->schema([
+                Tab::make('details')->label(__('revision.tabs.details'))->schema([
                     TextInput::make('locale')
+                        ->label(__('revision.fields.locale'))
                         ->required()
                         ->maxLength(10)
-                        ->placeholder('en, sv, ...'),
+                        ->placeholder(__('revision.fields.locale_placeholder')),
 
                     TextInput::make('version_number')
+                        ->label(__('revision.fields.version_number'))
                         ->required()
                         ->numeric()
                         ->minValue(1),
 
                     Select::make('status')
+                        ->label(__('revision.fields.status'))
                         ->required()
                         ->options([
-                            'draft' => 'Draft',
-                            'published' => 'Published',
-                            'archived' => 'Archived',
+                            'draft' => __('revision.status.draft'),
+                            'published' => __('revision.status.published'),
+                            'archived' => __('revision.status.archived'),
                         ])
                         ->native(false),
 
                     TextInput::make('title')
+                        ->label(__('revision.fields.title'))
                         ->required()
                         ->maxLength(255)
                         ->columnSpanFull(),
 
-                    Textarea::make('description')->rows(3)->columnSpanFull(),
-                    Textarea::make('notes')->rows(2)->columnSpanFull(),
+                    Textarea::make('description')->label(__('revision.fields.description'))->rows(3)->columnSpanFull(),
+                    Textarea::make('notes')->label(__('revision.fields.notes'))->rows(2)->columnSpanFull(),
 
                     // The link itself lives on the recipe (stable across locales); this is the
                     // prose credit for this locale.
                     TextInput::make('source_credit')
-                        ->label('Who to thank')
-                        ->placeholder("Mormor Ingrid's notebook, a friend, a cookbook…")
+                        ->label(__('revision.fields.source_credit'))
+                        ->placeholder(__('revision.fields.source_credit_placeholder'))
                         ->maxLength(255)
-                        ->helperText('The link itself is on the recipe, under Settings.')
+                        ->helperText(__('revision.fields.source_credit_helper'))
                         ->columnSpanFull(),
 
-                    TextInput::make('servings')->numeric()->nullable(),
-                    TextInput::make('prep_time_minutes')->label('Prep (min)')->numeric()->nullable(),
-                    TextInput::make('cook_time_minutes')->label('Cook (min)')->numeric()->nullable(),
+                    TextInput::make('servings')->label(__('revision.fields.servings'))->numeric()->nullable(),
+                    TextInput::make('prep_time_minutes')->label(__('revision.fields.prep_time'))->numeric()->nullable(),
+                    TextInput::make('cook_time_minutes')->label(__('revision.fields.cook_time'))->numeric()->nullable(),
                 ])->columns(3),
 
-                Tab::make('Ingredients')->schema([
+                Tab::make('ingredients')->label(__('revision.tabs.ingredients'))->schema([
                     // Ingredients are optional. A link-only recipe says so instead of showing an
                     // empty form and implying something is missing.
-                    EmptyState::make('Nothing listed yet — and that is fine')
+                    EmptyState::make(__('revision.empty.ingredients.heading'))
                         ->description(fn (?RecipeRevision $record): string => filled($record?->recipe?->source_url)
-                            ? 'The ingredients are in the original. Add them here only if you want your own version.'
-                            : 'Add ingredients whenever you like. A recipe with just a title is still a recipe.')
+                            ? __('revision.empty.ingredients.with_source')
+                            : __('revision.empty.ingredients.without_source'))
                         ->icon(Heroicon::OutlinedListBullet)
                         ->visible(fn (Get $get): bool => blank($get('ingredientGroups'))),
 
@@ -112,8 +116,8 @@ class RecipeRevisionForm
                         ->orderColumn('sort_order')
                         ->schema([
                             TextInput::make('title')
-                                ->label('Group title')
-                                ->placeholder('e.g. For the dough (leave blank for ungrouped)')
+                                ->label(__('revision.fields.group_title'))
+                                ->placeholder(__('revision.fields.group_title_placeholder'))
                                 ->maxLength(255),
 
                             Repeater::make('ingredients')
@@ -123,19 +127,19 @@ class RecipeRevisionForm
                                 // Reads left to right the way the line reads: 150 | g | butter.
                                 ->schema([
                                     TextInput::make('quantity')
-                                        ->label('Amount')
-                                        ->placeholder('1, 1.5, 1/2 ...')
+                                        ->label(__('revision.fields.quantity'))
+                                        ->placeholder(__('revision.fields.quantity_placeholder'))
                                         ->dehydrateStateUsing(fn ($state) => self::parseQuantity($state)),
 
                                     Select::make('unit_id')
-                                        ->label('Unit')
+                                        ->label(__('revision.fields.unit'))
                                         ->relationship('unit', 'code')
                                         ->searchable()
                                         ->preload()
                                         ->nullable(),
 
                                     Select::make('ingredient_id')
-                                        ->label('Ingredient')
+                                        ->label(__('revision.fields.ingredient'))
                                         ->relationship('ingredient', 'canonical_name')
                                         ->searchable()
                                         ->preload()
@@ -143,18 +147,18 @@ class RecipeRevisionForm
                                         // Add a missing ingredient to the global catalog without leaving the editor.
                                         ->createOptionForm([
                                             TextInput::make('canonical_name')
-                                                ->label('Ingredient name')
+                                                ->label(__('revision.fields.ingredient_name'))
                                                 ->required()
                                                 ->maxLength(255)
                                                 ->unique('ingredients', 'canonical_name'),
                                         ])
                                         ->columnSpan(3),
 
-                                    Toggle::make('optional')->inline(false),
+                                    Toggle::make('optional')->label(__('revision.fields.optional'))->inline(false),
 
                                     TextInput::make('preparation_note')
-                                        ->label('Prep note')
-                                        ->placeholder('finely chopped')
+                                        ->label(__('revision.fields.preparation_note'))
+                                        ->placeholder(__('revision.fields.preparation_note_placeholder'))
                                         ->maxLength(255)
                                         ->columnSpanFull(),
                                 ])
@@ -170,20 +174,20 @@ class RecipeRevisionForm
                                 ->collapsible()
                                 ->collapsed()
                                 ->itemLabel(fn (array $state): string => self::ingredientLine($state))
-                                ->addActionLabel('Add ingredient')
+                                ->addActionLabel(__('revision.actions.add_ingredient'))
                                 ->defaultItems(0),
                         ])
-                        ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Ungrouped')
-                        ->addActionLabel('Add ingredient group')
+                        ->itemLabel(fn (array $state): ?string => $state['title'] ?? __('revision.items.ungrouped'))
+                        ->addActionLabel(__('revision.actions.add_ingredient_group'))
                         ->defaultItems(0)
                         ->collapsible(),
                 ]),
 
-                Tab::make('Instructions')->schema([
-                    EmptyState::make('No steps written down')
+                Tab::make('instructions')->label(__('revision.tabs.instructions'))->schema([
+                    EmptyState::make(__('revision.empty.instructions.heading'))
                         ->description(fn (?RecipeRevision $record): string => filled($record?->recipe?->source_url)
-                            ? 'The method is in the original — follow the link when you cook it.'
-                            : 'Write the method out when you have a moment. It is not required.')
+                            ? __('revision.empty.instructions.with_source')
+                            : __('revision.empty.instructions.without_source'))
                         ->icon(Heroicon::OutlinedSparkles)
                         ->visible(fn (Get $get): bool => blank($get('instructionSections'))),
 
@@ -193,8 +197,8 @@ class RecipeRevisionForm
                         ->orderColumn('sort_order')
                         ->schema([
                             TextInput::make('title')
-                                ->label('Section title')
-                                ->placeholder('e.g. Preparation (leave blank for a single section)')
+                                ->label(__('revision.fields.section_title'))
+                                ->placeholder(__('revision.fields.section_title_placeholder'))
                                 ->maxLength(255),
 
                             Repeater::make('steps')
@@ -203,13 +207,13 @@ class RecipeRevisionForm
                                 ->orderColumn('sort_order')
                                 ->schema([
                                     Textarea::make('instruction_text')
-                                        ->label('Step')
+                                        ->label(__('revision.fields.step'))
                                         ->required()
                                         ->rows(2)
                                         ->columnSpan(3),
 
                                     TextInput::make('timer_seconds')
-                                        ->label('Timer (s)')
+                                        ->label(__('revision.fields.timer_seconds'))
                                         ->numeric()
                                         ->minValue(0)
                                         ->nullable(),
@@ -221,18 +225,18 @@ class RecipeRevisionForm
                                 ->mutateRelationshipDataBeforeSaveUsing(
                                     fn (array $data, Component $livewire): array => self::withRevisionId($data, $livewire)
                                 )
-                                ->addActionLabel('Add step')
+                                ->addActionLabel(__('revision.actions.add_step'))
                                 ->defaultItems(0),
                         ])
-                        ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Steps')
-                        ->addActionLabel('Add instruction section')
+                        ->itemLabel(fn (array $state): ?string => $state['title'] ?? __('revision.items.steps'))
+                        ->addActionLabel(__('revision.actions.add_instruction_section'))
                         ->defaultItems(0)
                         ->collapsible(),
                 ]),
 
-                Tab::make('Photos')->schema([
-                    EmptyState::make('No photos yet')
-                        ->description('Drop one in when you next make it. Recipes work fine without.')
+                Tab::make('photos')->label(__('revision.tabs.photos'))->schema([
+                    EmptyState::make(__('revision.empty.photos.heading'))
+                        ->description(__('revision.empty.photos.description'))
                         ->icon(Heroicon::OutlinedPhoto)
                         ->visible(fn (Get $get): bool => blank($get('images'))),
 
@@ -253,18 +257,18 @@ class RecipeRevisionForm
                                 ->columnSpan(2),
 
                             TextInput::make('alt_text')
-                                ->label('Describe the photo')
-                                ->placeholder('Bullar cooling on a rack')
-                                ->helperText('Read aloud to anyone using a screen reader.')
+                                ->label(__('revision.fields.alt_text'))
+                                ->placeholder(__('revision.fields.alt_text_placeholder'))
+                                ->helperText(__('revision.fields.alt_text_helper'))
                                 ->maxLength(255),
 
                             Toggle::make('is_cover')
-                                ->label('Use as cover')
-                                ->helperText('Only one photo leads.')
+                                ->label(__('revision.fields.is_cover'))
+                                ->helperText(__('revision.fields.is_cover_helper'))
                                 ->inline(false),
                         ])
                         ->columns(4)
-                        ->addActionLabel('Add a photo')
+                        ->addActionLabel(__('revision.actions.add_photo'))
                         ->defaultItems(0)
                         ->reorderableWithDragAndDrop(),
                 ]),
@@ -292,7 +296,7 @@ class RecipeRevisionForm
         $name = self::ingredientName($state['ingredient_id'] ?? null);
 
         if ($name === null) {
-            return 'New ingredient';
+            return __('revision.items.new_ingredient');
         }
 
         return RecipeRevisionIngredient::formatLine(

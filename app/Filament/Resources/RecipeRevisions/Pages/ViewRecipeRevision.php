@@ -22,14 +22,17 @@ class ViewRecipeRevision extends ViewRecord
     {
         return [
             Action::make('edit')
-                ->label('Edit content')
+                ->label(__('revision.actions.edit_content'))
                 ->url(fn (): string => RecipeRevisionResource::getUrl('edit', ['record' => $this->record])),
         ];
     }
 
     public function getBreadcrumb(): string
     {
-        return "{$this->record->locale} v{$this->record->version_number}";
+        return __('revision.breadcrumb', [
+            'locale' => $this->record->locale,
+            'version' => $this->record->version_number,
+        ]);
     }
 
     /**
@@ -38,7 +41,7 @@ class ViewRecipeRevision extends ViewRecord
     public function getBreadcrumbs(): array
     {
         return [
-            RecipeResource::getUrl('edit', ['record' => $this->record->recipe_id]) => 'Recipe',
+            RecipeResource::getUrl('edit', ['record' => $this->record->recipe_id]) => __('recipe.breadcrumb'),
             $this->getBreadcrumb(),
         ];
     }

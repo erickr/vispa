@@ -14,12 +14,17 @@ class UnitsTable
     {
         return $table
             ->columns([
-                TextColumn::make('code')->searchable()->sortable(),
-                TextColumn::make('type')->badge()->sortable(),
+                TextColumn::make('code')->label(__('unit.fields.code'))->searchable()->sortable(),
+                TextColumn::make('type')
+                    ->label(__('unit.fields.type'))
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => __('unit.types.'.$state))
+                    ->sortable(),
                 TextColumn::make('baseUnit.code')
-                    ->label('Base unit')
+                    ->label(__('unit.fields.base_unit'))
                     ->placeholder('—'),
                 TextColumn::make('factor_to_base')
+                    ->label(__('unit.fields.factor_to_base'))
                     ->numeric(decimalPlaces: 6)
                     ->alignRight(),
             ])

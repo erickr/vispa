@@ -50,7 +50,7 @@ class RecipeRevisionIngredient extends Model
         }
 
         if ($optional) {
-            $line .= ' (optional)';
+            $line .= ' '.__('revision.items.optional_suffix');
         }
 
         return $line;

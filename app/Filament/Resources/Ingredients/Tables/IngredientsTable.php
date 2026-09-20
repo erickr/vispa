@@ -14,12 +14,16 @@ class IngredientsTable
     {
         return $table
             ->columns([
-                TextColumn::make('canonical_name')->searchable()->sortable(),
+                TextColumn::make('canonical_name')
+                    ->label(__('ingredient.fields.canonical_name'))
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('translations_count')
                     ->counts('translations')
-                    ->label('Translations')
+                    ->label(__('ingredient.translations.count'))
                     ->alignRight(),
                 TextColumn::make('created_at')
+                    ->label(__('ingredient.fields.created_at'))
                     ->dateTime()
                     ->since()
                     ->sortable()

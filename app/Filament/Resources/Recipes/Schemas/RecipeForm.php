@@ -23,34 +23,38 @@ class RecipeForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
+            // Tab names stay in English: they are the tab's key, and the URL remembers
+            // which one was open. The label is what the reader sees.
             Tabs::make()->tabs([
 
-                Tab::make('Recipe')->schema([
+                Tab::make('recipe')->label(__('recipe.tabs.recipe'))->schema([
                     TextInput::make('default_locale')
+                        ->label(__('recipe.fields.default_locale'))
                         ->required()
                         ->maxLength(10)
                         ->default('en'),
 
                     Select::make('visibility')
+                        ->label(__('recipe.fields.visibility'))
                         ->required()
                         ->options([
-                            'private' => 'Private',
-                            'unlisted' => 'Unlisted',
-                            'public' => 'Public',
+                            'private' => __('recipe.visibility.private'),
+                            'unlisted' => __('recipe.visibility.unlisted'),
+                            'public' => __('recipe.visibility.public'),
                         ])
                         ->default('private')
                         ->native(false),
 
                     TextInput::make('source_url')
-                        ->label('Source link')
+                        ->label(__('recipe.fields.source_url'))
                         ->url()
                         ->maxLength(500)
-                        ->placeholder('https://www.ica.se/recept/...')
-                        ->helperText('Where it came from. A link on its own is a complete recipe — ingredients and instructions are optional.')
+                        ->placeholder(__('recipe.fields.source_url_placeholder'))
+                        ->helperText(__('recipe.fields.source_url_helper'))
                         ->columnSpanFull(),
 
                     Select::make('forked_from_recipe_id')
-                        ->label('Forked from recipe')
+                        ->label(__('recipe.fields.forked_from_recipe'))
                         ->relationship(
                             name: 'forkedFromRecipe',
                             titleAttribute: 'uuid',
@@ -63,92 +67,104 @@ class RecipeForm
                         ->nullable(),
 
                     Select::make('forked_from_revision_id')
-                        ->label('Forked from revision')
+                        ->label(__('recipe.fields.forked_from_revision'))
                         ->relationship('forkedFromRevision', 'uuid')
                         ->searchable()
                         ->preload()
                         ->nullable(),
                 ])->columns(2),
 
-                Tab::make('Slugs')->schema([
+                Tab::make('slugs')->label(__('recipe.tabs.slugs'))->schema([
                     Repeater::make('localeSlugs')
                         ->relationship()
                         ->hiddenLabel()
                         ->schema([
                             TextInput::make('locale')
+                                ->label(__('recipe.fields.locale'))
                                 ->required()
                                 ->maxLength(10)
-                                ->placeholder('en, sv, ...'),
+                                ->placeholder(__('recipe.fields.locale_placeholder')),
                             TextInput::make('slug')
+                                ->label(__('recipe.fields.slug'))
                                 ->required()
                                 ->maxLength(255),
                             Toggle::make('is_primary')
+                                ->label(__('recipe.fields.is_primary'))
                                 ->default(true),
                         ])
                         ->columns(3)
                         ->itemLabel(fn (array $state): ?string => isset($state['locale'], $state['slug'])
                             ? "{$state['locale']} / {$state['slug']}"
                             : null)
-                        ->addActionLabel('Add slug')
+                        ->addActionLabel(__('recipe.actions.add_slug'))
                         ->defaultItems(0),
                 ]),
 
-                Tab::make('Revisions')->schema([
+                Tab::make('revisions')->label(__('recipe.tabs.revisions'))->schema([
                     Repeater::make('revisions')
                         ->relationship()
                         ->hiddenLabel()
                         ->schema([
                             Section::make()->schema([
                                 TextInput::make('locale')
+                                    ->label(__('revision.fields.locale'))
                                     ->required()
                                     ->maxLength(10)
-                                    ->placeholder('en, sv, ...'),
+                                    ->placeholder(__('revision.fields.locale_placeholder')),
 
                                 TextInput::make('version_number')
+                                    ->label(__('revision.fields.version_number'))
                                     ->required()
                                     ->numeric()
                                     ->minValue(1)
                                     ->default(1),
 
                                 Select::make('status')
+                                    ->label(__('revision.fields.status'))
                                     ->required()
                                     ->options([
-                                        'draft' => 'Draft',
-                                        'published' => 'Published',
-                                        'archived' => 'Archived',
+                                        'draft' => __('revision.status.draft'),
+                                        'published' => __('revision.status.published'),
+                                        'archived' => __('revision.status.archived'),
                                     ])
                                     ->default('draft')
                                     ->native(false),
 
                                 TextInput::make('title')
+                                    ->label(__('revision.fields.title'))
                                     ->required()
                                     ->maxLength(255)
                                     ->columnSpanFull(),
 
                                 Textarea::make('description')
+                                    ->label(__('revision.fields.description'))
                                     ->rows(3)
                                     ->columnSpanFull(),
 
                                 Textarea::make('notes')
+                                    ->label(__('revision.fields.notes'))
                                     ->rows(2)
                                     ->columnSpanFull(),
 
-                                TextInput::make('servings')->numeric()->nullable(),
+                                TextInput::make('servings')
+                                    ->label(__('revision.fields.servings'))
+                                    ->numeric()
+                                    ->nullable(),
                                 TextInput::make('prep_time_minutes')
-                                    ->label('Prep (min)')
+                                    ->label(__('revision.fields.prep_time'))
                                     ->numeric()
                                     ->nullable(),
                                 TextInput::make('cook_time_minutes')
-                                    ->label('Cook (min)')
+                                    ->label(__('revision.fields.cook_time'))
                                     ->numeric()
                                     ->nullable(),
                             ])->columns(3),
                         ])
                         ->defaultItems(0)
                         ->itemLabel(fn (array $state): ?string => isset($state['version_number'])
-                            ? trim(($state['locale'] ?? '').' v'.$state['version_number'].' — '.($state['status'] ?? 'draft'))
+                            ? trim(($state['locale'] ?? '').' v'.$state['version_number'].' — '.__('revision.status.'.($state['status'] ?? 'draft')))
                             : null)
-                        ->addActionLabel('Add revision')
+                        ->addActionLabel(__('recipe.actions.add_revision'))
                         ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
                             $data['created_by_user_id'] = Auth::id();
 
@@ -156,15 +172,15 @@ class RecipeForm
                         })
                         ->extraItemActions([
                             Action::make('editContent')
-                                ->label('Edit content')
+                                ->label(__('recipe.actions.edit_content'))
                                 ->icon(Heroicon::OutlinedPencilSquare)
                                 ->action(function (array $arguments, Repeater $component, Component $livewire): void {
                                     $record = $component->getCachedExistingRecords()[$arguments['item']] ?? null;
 
                                     if (! $record) {
                                         Notification::make()
-                                            ->title('Save the recipe first')
-                                            ->body('Save this new revision before editing its ingredients and instructions.')
+                                            ->title(__('recipe.notifications.save_first.title'))
+                                            ->body(__('recipe.notifications.save_first.body'))
                                             ->warning()
                                             ->send();
 

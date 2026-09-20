@@ -30,8 +30,8 @@ class EditRecipeRevision extends EditRecord
                 ?? $revision->draftFork(Auth::id());
 
             Notification::make()
-                ->title('Editing a draft copy')
-                ->body("Published revisions are immutable, so you're now editing draft v{$draft->version_number}.")
+                ->title(__('revision.notifications.draft_copy.title'))
+                ->body(__('revision.notifications.draft_copy.body', ['version' => $draft->version_number]))
                 ->info()
                 ->send();
 
@@ -52,7 +52,10 @@ class EditRecipeRevision extends EditRecord
 
     public function getBreadcrumb(): string
     {
-        return "{$this->record->locale} v{$this->record->version_number}";
+        return __('revision.breadcrumb', [
+            'locale' => $this->record->locale,
+            'version' => $this->record->version_number,
+        ]);
     }
 
     /**
@@ -61,7 +64,7 @@ class EditRecipeRevision extends EditRecord
     public function getBreadcrumbs(): array
     {
         return [
-            RecipeResource::getUrl('edit', ['record' => $this->record->recipe_id]) => 'Recipe',
+            RecipeResource::getUrl('edit', ['record' => $this->record->recipe_id]) => __('recipe.breadcrumb'),
             $this->getBreadcrumb(),
         ];
     }

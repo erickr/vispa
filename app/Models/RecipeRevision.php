@@ -92,6 +92,21 @@ class RecipeRevision extends Model
     }
 
     /**
+     * How a status reads to the cook — "Ready" rather than "published". A status with no
+     * wording of its own is shown raw rather than as a missing translation key.
+     */
+    public static function statusWord(?string $status): ?string
+    {
+        if ($status === null) {
+            return null;
+        }
+
+        $key = 'revision.status_words.'.$status;
+
+        return __($key) === $key ? $status : __($key);
+    }
+
+    /**
      * Append-only invariant: a published revision is never mutated. Editing one instead works on a
      * draft fork — a new revision in the same locale (next version number) with all content
      * deep-copied. The group/section parent links are remapped to the clone's own rows.

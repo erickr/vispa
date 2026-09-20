@@ -14,21 +14,23 @@ class UnitForm
         return $schema->components([
             Section::make()->schema([
                 TextInput::make('code')
+                    ->label(__('unit.fields.code'))
                     ->required()
                     ->maxLength(50)
                     ->unique(ignoreRecord: true),
 
                 Select::make('type')
+                    ->label(__('unit.fields.type'))
                     ->options([
-                        'mass' => 'Mass',
-                        'volume' => 'Volume',
-                        'count' => 'Count',
+                        'mass' => __('unit.types.mass'),
+                        'volume' => __('unit.types.volume'),
+                        'count' => __('unit.types.count'),
                     ])
                     ->required()
                     ->native(false),
 
                 Select::make('base_unit_id')
-                    ->label('Base unit')
+                    ->label(__('unit.fields.base_unit'))
                     ->relationship(
                         name: 'baseUnit',
                         titleAttribute: 'code',
@@ -41,6 +43,7 @@ class UnitForm
                     ->nullable(),
 
                 TextInput::make('factor_to_base')
+                    ->label(__('unit.fields.factor_to_base'))
                     ->required()
                     ->numeric()
                     ->default(1)

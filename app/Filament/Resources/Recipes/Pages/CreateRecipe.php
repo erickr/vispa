@@ -25,11 +25,15 @@ class CreateRecipe extends CreateRecord
     protected function afterCreate(): void
     {
         if (! $this->record->revisions()->exists()) {
+            $locale = $this->record->default_locale ?: 'en';
+
             $this->record->revisions()->create([
-                'locale' => $this->record->default_locale ?: 'en',
+                'locale' => $locale,
                 'version_number' => 1,
                 'status' => 'draft',
-                'title' => 'Untitled recipe',
+                // Content, not chrome: written in the revision's locale rather than the
+                // reader's, so a Swedish revision starts with a Swedish placeholder title.
+                'title' => __('recipe.untitled', locale: $locale),
                 'created_by_user_id' => Auth::id(),
             ]);
         }

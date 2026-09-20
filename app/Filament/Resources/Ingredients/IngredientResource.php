@@ -22,9 +22,27 @@ class IngredientResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'canonical_name';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Library';
-
     protected static ?int $navigationSort = 20;
+
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return __('navigation.groups.library');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('ingredient.label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('ingredient.plural_label');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('ingredient.plural_label');
+    }
 
     public static function form(Schema $schema): Schema
     {

@@ -24,9 +24,27 @@ class RecipeResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'uuid';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'My recipes';
-
     protected static ?int $navigationSort = 10;
+
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return __('navigation.groups.my_recipes');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('recipe.label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('recipe.plural_label');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('recipe.plural_label');
+    }
 
     public static function form(Schema $schema): Schema
     {

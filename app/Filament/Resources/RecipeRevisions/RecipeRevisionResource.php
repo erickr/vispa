@@ -17,6 +17,16 @@ class RecipeRevisionResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'title';
 
+    public static function getModelLabel(): string
+    {
+        return __('revision.label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('revision.plural_label');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return RecipeRevisionForm::configure($schema);
