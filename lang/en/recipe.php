@@ -26,7 +26,6 @@ return [
         'forked_from_recipe' => 'Forked from recipe',
         'forked_from_revision' => 'Forked from revision',
         'locale' => 'Locale',
-        'locale_placeholder' => 'en, sv, ...',
         'slug' => 'Slug',
         'is_primary' => 'Primary',
         'uuid' => 'UUID',

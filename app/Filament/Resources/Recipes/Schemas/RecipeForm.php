@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Recipes\Schemas;
 
 use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
+use App\Models\Recipe;
+use App\Support\SupportedLocales;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -15,6 +17,7 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -28,11 +31,13 @@ class RecipeForm
             Tabs::make()->tabs([
 
                 Tab::make('recipe')->label(__('recipe.tabs.recipe'))->schema([
-                    TextInput::make('default_locale')
+                    Select::make('default_locale')
                         ->label(__('recipe.fields.default_locale'))
+                        ->options(fn (?Recipe $record): array => SupportedLocales::optionsIncluding($record?->default_locale))
+                        ->default(fn (): string => SupportedLocales::preferred())
                         ->required()
-                        ->maxLength(10)
-                        ->default('en'),
+                        ->selectablePlaceholder(false)
+                        ->native(false),
 
                     Select::make('visibility')
                         ->label(__('recipe.fields.visibility'))
@@ -79,11 +84,13 @@ class RecipeForm
                         ->relationship()
                         ->hiddenLabel()
                         ->schema([
-                            TextInput::make('locale')
+                            Select::make('locale')
                                 ->label(__('recipe.fields.locale'))
+                                ->options(fn (?Model $record): array => SupportedLocales::optionsIncluding($record?->locale))
+                                ->default(fn (): string => SupportedLocales::preferred())
                                 ->required()
-                                ->maxLength(10)
-                                ->placeholder(__('recipe.fields.locale_placeholder')),
+                                ->selectablePlaceholder(false)
+                                ->native(false),
                             TextInput::make('slug')
                                 ->label(__('recipe.fields.slug'))
                                 ->required()
@@ -106,11 +113,13 @@ class RecipeForm
                         ->hiddenLabel()
                         ->schema([
                             Section::make()->schema([
-                                TextInput::make('locale')
+                                Select::make('locale')
                                     ->label(__('revision.fields.locale'))
+                                    ->options(fn (?Model $record): array => SupportedLocales::optionsIncluding($record?->locale))
+                                    ->default(fn (): string => SupportedLocales::preferred())
                                     ->required()
-                                    ->maxLength(10)
-                                    ->placeholder(__('revision.fields.locale_placeholder')),
+                                    ->selectablePlaceholder(false)
+                                    ->native(false),
 
                                 TextInput::make('version_number')
                                     ->label(__('revision.fields.version_number'))

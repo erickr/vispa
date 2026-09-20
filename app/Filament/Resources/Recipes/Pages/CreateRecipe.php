@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Recipes\Pages;
 
 use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Filament\Resources\Recipes\RecipeResource;
+use App\Support\SupportedLocales;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Auth;
 
@@ -25,7 +26,7 @@ class CreateRecipe extends CreateRecord
     protected function afterCreate(): void
     {
         if (! $this->record->revisions()->exists()) {
-            $locale = $this->record->default_locale ?: 'en';
+            $locale = $this->record->default_locale ?: SupportedLocales::preferred();
 
             $this->record->revisions()->create([
                 'locale' => $locale,

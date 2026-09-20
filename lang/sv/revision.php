@@ -35,7 +35,6 @@ return [
 
     'fields' => [
         'locale' => 'Språk',
-        'locale_placeholder' => 'en, sv, ...',
         'version_number' => 'Versionsnummer',
         'version' => 'Version',
         'status' => 'Status',

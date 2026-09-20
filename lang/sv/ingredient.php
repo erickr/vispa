@@ -8,7 +8,6 @@ return [
     'fields' => [
         'canonical_name' => 'Grundnamn',
         'locale' => 'Språk',
-        'locale_placeholder' => 'en, sv, ...',
         'name' => 'Namn',
         'created_at' => 'Skapad',
     ],

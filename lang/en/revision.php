@@ -37,7 +37,6 @@ return [
 
     'fields' => [
         'locale' => 'Locale',
-        'locale_placeholder' => 'en, sv, ...',
         'version_number' => 'Version number',
         'version' => 'Version',
         'status' => 'Status',

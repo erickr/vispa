@@ -24,7 +24,6 @@ return [
         'forked_from_recipe' => 'Förgrenat från recept',
         'forked_from_revision' => 'Förgrenat från revision',
         'locale' => 'Språk',
-        'locale_placeholder' => 'en, sv, ...',
         'slug' => 'Länknamn',
         'is_primary' => 'Primärt',
         'uuid' => 'UUID',

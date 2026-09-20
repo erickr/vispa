@@ -8,7 +8,6 @@ return [
     'fields' => [
         'canonical_name' => 'Canonical name',
         'locale' => 'Locale',
-        'locale_placeholder' => 'en, sv, ...',
         'name' => 'Name',
         'created_at' => 'Created at',
     ],

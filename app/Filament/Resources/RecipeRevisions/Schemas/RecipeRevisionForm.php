@@ -6,6 +6,7 @@ use App\Models\Ingredient;
 use App\Models\RecipeRevision;
 use App\Models\RecipeRevisionIngredient;
 use App\Models\Unit;
+use App\Support\SupportedLocales;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
@@ -55,11 +56,13 @@ class RecipeRevisionForm
             Tabs::make()->tabs([
 
                 Tab::make('details')->label(__('revision.tabs.details'))->schema([
-                    TextInput::make('locale')
+                    Select::make('locale')
                         ->label(__('revision.fields.locale'))
+                        ->options(fn (?RecipeRevision $record): array => SupportedLocales::optionsIncluding($record?->locale))
+                        ->default(fn (): string => SupportedLocales::preferred())
                         ->required()
-                        ->maxLength(10)
-                        ->placeholder(__('revision.fields.locale_placeholder')),
+                        ->selectablePlaceholder(false)
+                        ->native(false),
 
                     TextInput::make('version_number')
                         ->label(__('revision.fields.version_number'))

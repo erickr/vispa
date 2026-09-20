@@ -2,10 +2,13 @@
 
 namespace App\Filament\Resources\Ingredients\Schemas;
 
+use App\Support\SupportedLocales;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Model;
 
 class IngredientForm
 {
@@ -27,11 +30,13 @@ class IngredientForm
                         ->relationship()
                         ->hiddenLabel()
                         ->schema([
-                            TextInput::make('locale')
+                            Select::make('locale')
                                 ->label(__('ingredient.fields.locale'))
+                                ->options(fn (?Model $record): array => SupportedLocales::optionsIncluding($record?->locale))
+                                ->default(fn (): string => SupportedLocales::preferred())
                                 ->required()
-                                ->maxLength(10)
-                                ->placeholder(__('ingredient.fields.locale_placeholder')),
+                                ->selectablePlaceholder(false)
+                                ->native(false),
                             TextInput::make('name')
                                 ->label(__('ingredient.fields.name'))
                                 ->required()
