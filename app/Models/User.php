@@ -39,9 +39,17 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
         return SupportedLocales::sanitize($this->locale);
     }
 
+    /** The only account allowed to change the global units catalog. */
+    public const UNIT_ADMIN_EMAIL = 'ek@itomat.se';
+
     public function canAccessPanel(Panel $panel): bool
     {
         return true;
+    }
+
+    public function isUnitAdmin(): bool
+    {
+        return strcasecmp((string) $this->email, self::UNIT_ADMIN_EMAIL) === 0;
     }
 
     public function recipes(): HasMany
