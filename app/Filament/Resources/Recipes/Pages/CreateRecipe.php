@@ -12,9 +12,16 @@ class CreateRecipe extends CreateRecord
 {
     protected static string $resource = RecipeResource::class;
 
+    /** The title typed (or fetched from the link) on the create form, for the seeded revision. */
+    protected ?string $firstRevisionTitle = null;
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['owner_user_id'] = Auth::id();
+
+        // Titles live on revisions, not the recipe row.
+        $this->firstRevisionTitle = filled($data['title'] ?? null) ? trim($data['title']) : null;
+        unset($data['title']);
 
         return $data;
     }
@@ -34,7 +41,7 @@ class CreateRecipe extends CreateRecord
                 'status' => 'draft',
                 // Content, not chrome: written in the revision's locale rather than the
                 // reader's, so a Swedish revision starts with a Swedish placeholder title.
-                'title' => __('recipe.untitled', locale: $locale),
+                'title' => $this->firstRevisionTitle ?? __('recipe.untitled', locale: $locale),
                 'created_by_user_id' => Auth::id(),
             ]);
         }

@@ -23,6 +23,8 @@ return [
         'source_url' => 'Source link',
         'source_url_placeholder' => 'https://www.ica.se/recept/...',
         'source_url_helper' => 'Where it came from. A link on its own is a complete recipe — ingredients and instructions are optional.',
+        'title' => 'Title',
+        'title_helper' => 'Becomes the title of the first revision. Leave it empty to name it later.',
         'forked_from_recipe' => 'Forked from recipe',
         'forked_from_revision' => 'Forked from revision',
         'locale' => 'Locale',
@@ -38,6 +40,7 @@ return [
     ],
 
     'actions' => [
+        'fetch_title' => 'Fetch',
         'add_slug' => 'Add slug',
         'add_revision' => 'Add revision',
         'edit_content' => 'Edit content',
@@ -46,6 +49,11 @@ return [
     ],
 
     'notifications' => [
+        'fetch_title' => [
+            'no_url' => 'Enter a valid link first',
+            'not_found' => 'Couldn’t find a title on that page',
+            'not_found_body' => 'The page couldn’t be read, or it has no heading. Type the title yourself.',
+        ],
         'save_first' => [
             'title' => 'Save the recipe first',
             'body' => 'Save this new revision before editing its ingredients and instructions.',

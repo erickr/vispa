@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Recipes\Schemas;
 
 use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Models\Recipe;
+use App\Support\PageTitleFetcher;
 use App\Support\SupportedLocales;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
@@ -15,6 +16,8 @@ use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
@@ -56,6 +59,45 @@ class RecipeForm
                         ->maxLength(500)
                         ->placeholder(__('recipe.fields.source_url_placeholder'))
                         ->helperText(__('recipe.fields.source_url_helper'))
+                        ->suffixAction(
+                            // Reads the page's heading into the title below, so a saved link has a name.
+                            Action::make('fetchTitle')
+                                ->label(__('recipe.actions.fetch_title'))
+                                ->button()
+                                ->visible(fn (string $operation): bool => $operation === 'create')
+                                ->action(function (Get $get, Set $set): void {
+                                    $url = trim((string) $get('source_url'));
+
+                                    if (! filter_var($url, FILTER_VALIDATE_URL)) {
+                                        Notification::make()->title(__('recipe.notifications.fetch_title.no_url'))->warning()->send();
+
+                                        return;
+                                    }
+
+                                    $title = app(PageTitleFetcher::class)->fetch($url);
+
+                                    if ($title === null) {
+                                        Notification::make()
+                                            ->title(__('recipe.notifications.fetch_title.not_found'))
+                                            ->body(__('recipe.notifications.fetch_title.not_found_body'))
+                                            ->warning()
+                                            ->send();
+
+                                        return;
+                                    }
+
+                                    $set('title', $title);
+                                })
+                        )
+                        ->columnSpanFull(),
+
+                    // Not a recipe column: CreateRecipe hands it to the seeded first revision.
+                    TextInput::make('title')
+                        ->label(__('recipe.fields.title'))
+                        ->placeholder(__('recipe.untitled'))
+                        ->helperText(__('recipe.fields.title_helper'))
+                        ->maxLength(255)
+                        ->visibleOn('create')
                         ->columnSpanFull(),
 
                     Select::make('forked_from_recipe_id')

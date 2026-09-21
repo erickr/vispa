@@ -21,6 +21,8 @@ return [
         'source_url' => 'Länk till originalet',
         'source_url_placeholder' => 'https://www.ica.se/recept/...',
         'source_url_helper' => 'Var det kommer ifrån. Bara en länk räcker som recept — ingredienser och instruktioner är valfria.',
+        'title' => 'Titel',
+        'title_helper' => 'Blir titeln på den första revisionen. Lämna tomt för att namnge det senare.',
         'forked_from_recipe' => 'Förgrenat från recept',
         'forked_from_revision' => 'Förgrenat från revision',
         'locale' => 'Språk',
@@ -36,6 +38,7 @@ return [
     ],
 
     'actions' => [
+        'fetch_title' => 'Hämta',
         'add_slug' => 'Lägg till länknamn',
         'add_revision' => 'Lägg till revision',
         'edit_content' => 'Redigera innehåll',
@@ -44,6 +47,11 @@ return [
     ],
 
     'notifications' => [
+        'fetch_title' => [
+            'no_url' => 'Ange en giltig länk först',
+            'not_found' => 'Hittade ingen titel på sidan',
+            'not_found_body' => 'Sidan gick inte att läsa, eller saknar rubrik. Skriv titeln själv.',
+        ],
         'save_first' => [
             'title' => 'Spara receptet först',
             'body' => 'Spara den nya revisionen innan du redigerar dess ingredienser och instruktioner.',
