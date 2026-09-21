@@ -59,7 +59,7 @@ class RecipeRevisionEditorTest extends TestCase
 
         $flour = Ingredient::create(['canonical_name' => 'flour']);
         $milk = Ingredient::create(['canonical_name' => 'milk']);
-        $gram = Unit::create(['code' => 'g', 'type' => 'mass']);
+        $gram = Unit::firstOrCreate(['code' => 'g'], ['type' => 'mass']);
 
         Livewire::test(EditRecipeRevision::class, ['record' => $revision->getKey()])
             ->fillForm([

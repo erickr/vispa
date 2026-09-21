@@ -168,7 +168,7 @@ class RecipeSourceAndPhotosTest extends TestCase
         $this->owner();
 
         $butter = Ingredient::create(['canonical_name' => 'butter']);
-        $gram = Unit::create(['code' => 'g', 'type' => 'mass']);
+        $gram = Unit::firstOrCreate(['code' => 'g'], ['type' => 'mass']);
 
         $this->assertSame('150 g butter, softened', RecipeRevisionForm::ingredientLine([
             'ingredient_id' => $butter->id,
@@ -253,7 +253,7 @@ class RecipeSourceAndPhotosTest extends TestCase
         $revision = $this->revisionFor($recipe, $user, ['title' => 'Kanelbullar']);
 
         $butter = Ingredient::create(['canonical_name' => 'butter']);
-        $gram = Unit::create(['code' => 'g', 'type' => 'mass']);
+        $gram = Unit::firstOrCreate(['code' => 'g'], ['type' => 'mass']);
         $ingredient = $revision->ingredients()->create([
             'ingredient_id' => $butter->id,
             'unit_id' => $gram->id,

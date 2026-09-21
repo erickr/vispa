@@ -46,6 +46,32 @@ return [
         'settings' => 'Inställningar',
     ],
 
+    'import' => [
+        'action' => 'Importera från länk',
+        'modal_heading' => 'Importera ett recept från en länk',
+        'modal_description' => 'Vispa läser sidan och fyller i ett utkast: ingredienser, steg, portioner och bilden. Gå igenom det innan du publicerar.',
+        'submit' => 'Importera',
+        'heading' => 'Importerar recept',
+        'status' => [
+            'pending' => 'Väntar på att starta…',
+            'running' => 'Läser receptet… det brukar ta under en minut.',
+            'done' => 'Klart — öppnar receptet…',
+            'failed' => 'Importen fungerade inte',
+        ],
+        'retry' => 'Försök igen',
+        'back' => 'Tillbaka till recepten',
+        'total_time' => 'Total tid: :minutes min.',
+        'errors' => [
+            'unreachable' => 'Sidan gick inte att hämta. Kontrollera länken och försök igen.',
+            'no_recipe' => 'Hittade inget recept på sidan.',
+            'too_large' => 'Sidan är för stor för att läsas som ett recept.',
+            'refused' => 'Receptet gick inte att läsa från den här källan.',
+            'busy' => 'Receptläsningen är upptagen just nu. Försök igen om en minut.',
+            'api' => 'Receptläsningen är inte tillgänglig just nu. Försök igen senare.',
+            'unexpected' => 'Något gick fel under importen.',
+        ],
+    ],
+
     'notifications' => [
         'fetch_title' => [
             'no_url' => 'Ange en giltig länk först',

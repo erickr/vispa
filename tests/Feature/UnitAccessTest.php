@@ -27,7 +27,7 @@ class UnitAccessTest extends TestCase
 
         Filament::setCurrentPanel('app');
 
-        $this->unit = Unit::create(['code' => 'g', 'type' => 'mass', 'factor_to_base' => 1]);
+        $this->unit = Unit::create(['code' => 'test-unit', 'type' => 'mass', 'factor_to_base' => 1]);
     }
 
     public function test_the_admin_can_create_edit_and_delete_units(): void
@@ -52,6 +52,7 @@ class UnitAccessTest extends TestCase
 
         Livewire::test(ListUnits::class)
             ->assertOk()
+            ->searchTable('test-unit')
             ->assertCanSeeTableRecords([$this->unit])
             ->assertActionHidden('create')
             ->assertTableActionHidden('edit', $this->unit)

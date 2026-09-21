@@ -48,6 +48,32 @@ return [
         'settings' => 'Settings',
     ],
 
+    'import' => [
+        'action' => 'Import from link',
+        'modal_heading' => 'Import a recipe from a link',
+        'modal_description' => 'Vispa reads the page and fills in a draft: ingredients, steps, servings and the photo. Check it over before you publish.',
+        'submit' => 'Import',
+        'heading' => 'Importing recipe',
+        'status' => [
+            'pending' => 'Waiting to start…',
+            'running' => 'Reading the recipe… this usually takes under a minute.',
+            'done' => 'Done — opening the recipe…',
+            'failed' => 'The import didn’t work',
+        ],
+        'retry' => 'Try again',
+        'back' => 'Back to recipes',
+        'total_time' => 'Total time: :minutes min.',
+        'errors' => [
+            'unreachable' => 'The page couldn’t be fetched. Check the link and try again.',
+            'no_recipe' => 'No recipe was found on that page.',
+            'too_large' => 'The page is too large to read as one recipe.',
+            'refused' => 'The recipe couldn’t be read from this source.',
+            'busy' => 'Recipe reading is busy right now. Try again in a minute.',
+            'api' => 'Recipe reading is unavailable right now. Try again later.',
+            'unexpected' => 'Something went wrong during the import.',
+        ],
+    ],
+
     'notifications' => [
         'fetch_title' => [
             'no_url' => 'Enter a valid link first',

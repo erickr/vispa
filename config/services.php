@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    // Recipe import reads recipes with Claude (App\Recipes\Import\ClaudeRecipeExtractor).
+    // Without a key the "Import from link" action is hidden.
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-opus-5'),
+    ],
+
 ];
