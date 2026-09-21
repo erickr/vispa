@@ -10,6 +10,7 @@ return [
         'locale' => 'Språk',
         'name' => 'Namn',
         'created_at' => 'Skapad',
+        'visibility' => 'Synlig för',
     ],
 
     'translations' => [
@@ -17,6 +18,15 @@ return [
         'description' => 'Visningsnamn för den här ingrediensen på olika språk.',
         'add' => 'Lägg till översättning',
         'count' => 'Översättningar',
+    ],
+
+    'visibility' => [
+        'shared' => 'Alla',
+        'private' => 'Bara dig',
+    ],
+
+    'validation' => [
+        'name_taken' => 'Det finns redan en ingrediens med det här namnet.',
     ],
 
 ];

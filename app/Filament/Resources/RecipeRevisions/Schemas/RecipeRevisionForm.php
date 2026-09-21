@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RecipeRevisions\Schemas;
 
+use App\Filament\Resources\Ingredients\Schemas\IngredientForm;
 use App\Models\Ingredient;
 use App\Models\RecipeRevision;
 use App\Models\RecipeRevisionIngredient;
@@ -21,6 +22,7 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class RecipeRevisionForm
@@ -143,17 +145,24 @@ class RecipeRevisionForm
 
                                     Select::make('ingredient_id')
                                         ->label(__('revision.fields.ingredient'))
-                                        ->relationship('ingredient', 'canonical_name')
+                                        // Shared ingredients plus the author's own; the current pick stays
+                                        // resolvable even if it's someone else's private one.
+                                        ->relationship(
+                                            name: 'ingredient',
+                                            titleAttribute: 'canonical_name',
+                                            modifyQueryUsing: fn ($query, $state) => $query->visibleTo(Auth::user(), $state),
+                                        )
                                         ->searchable()
                                         ->preload()
                                         ->required()
-                                        // Add a missing ingredient to the global catalog without leaving the editor.
+                                        // Add a missing ingredient without leaving the editor; it's private to the author.
                                         ->createOptionForm([
-                                            TextInput::make('canonical_name')
-                                                ->label(__('revision.fields.ingredient_name'))
-                                                ->required()
-                                                ->maxLength(255)
-                                                ->unique('ingredients', 'canonical_name'),
+                                            IngredientForm::uniqueName(
+                                                TextInput::make('canonical_name')
+                                                    ->label(__('revision.fields.ingredient_name'))
+                                                    ->required()
+                                                    ->maxLength(255)
+                                            ),
                                         ])
                                         ->columnSpan(3),
 

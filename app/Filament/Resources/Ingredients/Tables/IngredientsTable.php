@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Ingredients\Tables;
 
+use App\Models\Ingredient;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -18,6 +19,12 @@ class IngredientsTable
                     ->label(__('ingredient.fields.canonical_name'))
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('owner_user_id')
+                    ->label(__('ingredient.fields.visibility'))
+                    ->badge()
+                    ->state(fn (Ingredient $record): string => $record->isShared() ? 'shared' : 'private')
+                    ->formatStateUsing(fn (string $state): string => __('ingredient.visibility.'.$state))
+                    ->color(fn (string $state): string => $state === 'shared' ? 'gray' : 'primary'),
                 TextColumn::make('translations_count')
                     ->counts('translations')
                     ->label(__('ingredient.translations.count'))
@@ -35,7 +42,8 @@ class IngredientsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    // Shared rows sit in everyone's list; only delete the ones this user may.
+                    DeleteBulkAction::make()->authorizeIndividualRecords('delete'),
                 ]),
             ]);
     }

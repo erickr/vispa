@@ -23,21 +23,21 @@ class UnitPolicy
 
     public function create(User $user): bool
     {
-        return $user->isUnitAdmin();
+        return $user->isCatalogAdmin();
     }
 
     public function update(User $user, Unit $unit): bool
     {
-        return $user->isUnitAdmin();
+        return $user->isCatalogAdmin();
     }
 
     public function delete(User $user, Unit $unit): bool
     {
-        return $user->isUnitAdmin();
+        return $user->isCatalogAdmin();
     }
 
     public function deleteAny(User $user): bool
     {
-        return $user->isUnitAdmin();
+        return $user->isCatalogAdmin();
     }
 }

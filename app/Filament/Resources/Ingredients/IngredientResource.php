@@ -13,6 +13,8 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class IngredientResource extends Resource
 {
@@ -52,6 +54,12 @@ class IngredientResource extends Resource
     public static function table(Table $table): Table
     {
         return IngredientsTable::configure($table);
+    }
+
+    /** Shared ingredients plus the signed-in user's own; other users' stay out of sight. */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->visibleTo(Auth::user());
     }
 
     public static function getRelations(): array

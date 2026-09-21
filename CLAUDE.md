@@ -40,7 +40,7 @@ The recipe domain follows a deliberate split. When touching recipes, keep the la
 
 `RecipeLocaleSlug` keeps a recipe's public URL slug per locale, stable across revisions.
 
-`Ingredient` / `Unit` are global catalog entities shared across all recipes/locales. `Ingredient` keeps its `IngredientTranslation` sibling so a single catalog row can be displayed in multiple languages — this is the only translation table left, and it's deliberately scoped to the catalog, not to revision content.
+`Ingredient` / `Unit` are catalog entities shared across recipes/locales. Only the catalog admin (`User::CATALOG_ADMIN_EMAIL`, see `isCatalogAdmin()`) edits units. Ingredients have a nullable `owner_user_id`: null = shared (created by the admin, visible to all), otherwise private to its creator (set by a `creating` hook). Use `Ingredient::visibleTo($user)` for listing/picking — it is a local scope, not a global one, so recipe lines still resolve any ingredient they reference. `Ingredient` keeps its `IngredientTranslation` sibling so a single catalog row can be displayed in multiple languages — this is the only translation table left, and it's deliberately scoped to the catalog, not to revision content.
 
 ### UUIDs
 All domain models use `App\Models\Concerns\HasUuid`, which auto-populates `uuid` on `creating`. The `id` (bigint) is still the FK target internally; `uuid` is for external/public references. Migrations consistently add `$table->uuid('uuid')->unique()` alongside `$table->id()`.
