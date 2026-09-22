@@ -15,6 +15,9 @@ echo "Deploying application ..."
     # Migrate database
     php artisan migrate --force
 
+    # Expose storage/app/public (uploaded recipe photos) at public/storage
+    php artisan storage:link
+
     # Clear cache
     php artisan optimize
 
