@@ -72,6 +72,24 @@ return [
         ],
     ],
 
+    'share' => [
+        'action' => 'Dela',
+        'heading' => 'Dela receptet',
+        'description' => 'Alla med länken kan läsa receptet. Inget annat av ditt syns.',
+        'private_heading' => 'Receptet är privat',
+        'private_description' => 'Ett privat recept har ingen sida att länka till. Gör det olistat så börjar länken nedan fungera — olistat betyder att bara de du ger länken till hittar det, och det syns inte någon annanstans.',
+        'make_unlisted' => 'Gör olistat och dela',
+        'close' => 'Stäng',
+        'copy' => 'Kopiera länk',
+        'copied' => 'Länken kopierad',
+        'open' => 'Öppna sidan',
+        'draft_warning' => 'Inget är publicerat än, så länken visar din senaste revision som den är.',
+        'now_unlisted' => [
+            'title' => 'Nu olistat — länken fungerar',
+            'body' => 'Du kan ändra tillbaka under Inställningar när du vill.',
+        ],
+    ],
+
     'notifications' => [
         'fetch_title' => [
             'no_url' => 'Ange en giltig länk först',

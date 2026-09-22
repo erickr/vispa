@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Recipes\Tables;
 
+use App\Filament\Actions\ShareRecipeAction;
 use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Models\Recipe;
 use App\Models\RecipeRevision;
@@ -121,6 +122,7 @@ class RecipesTable
                     ->icon(Heroicon::OutlinedPencilSquare)
                     ->url(fn (Recipe $record): ?string => self::editContentUrl($record))
                     ->visible(fn (Recipe $record): bool => self::editContentUrl($record) !== null),
+                ShareRecipeAction::make(),
                 EditAction::make()->label(__('recipe.actions.settings')),
             ])
             ->toolbarActions([

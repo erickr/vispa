@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Recipes\Pages;
 
+use App\Filament\Actions\ShareRecipeAction;
 use App\Filament\Resources\Recipes\RecipeResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -13,6 +14,7 @@ class EditRecipe extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            ShareRecipeAction::make(),
             DeleteAction::make(),
         ];
     }

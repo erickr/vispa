@@ -74,6 +74,24 @@ return [
         ],
     ],
 
+    'share' => [
+        'action' => 'Share',
+        'heading' => 'Share this recipe',
+        'description' => 'Anyone with this link can read the recipe. Nothing else of yours is visible.',
+        'private_heading' => 'This recipe is private',
+        'private_description' => 'A private recipe has no page to link to. Make it unlisted and the link below starts working — unlisted means only people you give the link to can find it, and it stays out of anything public.',
+        'make_unlisted' => 'Make it unlisted and share',
+        'close' => 'Close',
+        'copy' => 'Copy link',
+        'copied' => 'Link copied',
+        'open' => 'Open the page',
+        'draft_warning' => 'Nothing is published yet, so the link shows your latest revision as it stands.',
+        'now_unlisted' => [
+            'title' => 'Now unlisted — the link works',
+            'body' => 'Change it back under Settings whenever you like.',
+        ],
+    ],
+
     'notifications' => [
         'fetch_title' => [
             'no_url' => 'Enter a valid link first',

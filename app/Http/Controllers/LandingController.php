@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Support\SupportedLocales;
+use App\Support\PublicLocale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\View\View;
@@ -15,15 +15,10 @@ class LandingController extends Controller
 {
     public function __invoke(Request $request): View
     {
-        if (SupportedLocales::isSupported($request->query('lang'))) {
-            $request->session()->put('landing_locale', $request->query('lang'));
-        }
+        App::setLocale(PublicLocale::resolve($request));
 
-        $locale = $request->session()->get('landing_locale')
-            ?? $request->getPreferredLanguage(SupportedLocales::codes());
-
-        App::setLocale(SupportedLocales::sanitize($locale));
-
-        return view('welcome', ['locales' => SupportedLocales::options()]);
+        return view('welcome', [
+            'languages' => PublicLocale::links('landing'),
+        ]);
     }
 }
