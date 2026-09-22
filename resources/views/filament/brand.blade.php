@@ -1,7 +1,7 @@
 {{-- The whisk. The handle keeps Vispa's raspberry; the bowl follows the surrounding text colour
      so the mark reads on a light topbar and a dark one alike. --}}
 <span class="flex items-center gap-2.5">
-    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" class="shrink-0">
+    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" class="shrink-0 rotate-45">
         <path d="M13 2v7" stroke="#dd1f6e" stroke-width="2.4" stroke-linecap="round" />
         <g fill="none" stroke="currentColor" stroke-width="1.6" opacity="0.85">
             <path d="M13 9c-4 0-6 3.4-6 7.5S9.2 24 13 24s6-3.4 6-7.5S17 9 13 9z" />
