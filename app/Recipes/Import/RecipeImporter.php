@@ -80,15 +80,11 @@ class RecipeImporter
         $sort = 0;
 
         foreach ($extracted->ingredientGroups as $groupIndex => $group) {
-            $groupId = null;
-
-            // A lone untitled group is just "the ingredients"; don't wrap it in a group row.
-            if ($group['title'] !== null || count($extracted->ingredientGroups) > 1) {
-                $groupId = $revision->ingredientGroups()->create([
-                    'title' => $group['title'],
-                    'sort_order' => $groupIndex + 1,
-                ])->getKey();
-            }
+            // Always a group row, even untitled: the editor only shows ingredients inside a group.
+            $groupId = $revision->ingredientGroups()->create([
+                'title' => $group['title'],
+                'sort_order' => $groupIndex + 1,
+            ])->getKey();
 
             foreach ($group['items'] as $item) {
                 [$unitId, $unitNote] = $this->unit($item['unit'], $units->all());
@@ -117,14 +113,11 @@ class RecipeImporter
         $sort = 0;
 
         foreach ($extracted->instructionSections as $sectionIndex => $section) {
-            $sectionId = null;
-
-            if ($section['title'] !== null || count($extracted->instructionSections) > 1) {
-                $sectionId = $revision->instructionSections()->create([
-                    'title' => $section['title'],
-                    'sort_order' => $sectionIndex + 1,
-                ])->getKey();
-            }
+            // Likewise the editor only shows steps inside a section.
+            $sectionId = $revision->instructionSections()->create([
+                'title' => $section['title'],
+                'sort_order' => $sectionIndex + 1,
+            ])->getKey();
 
             foreach ($section['steps'] as $step) {
                 $revision->instructionSteps()->create([

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\RecipeRevisions\Pages\EditRecipeRevision;
 use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Filament\Resources\Recipes\Pages\ImportRecipeStatus;
 use App\Filament\Resources\Recipes\Pages\ListRecipes;
@@ -147,7 +148,11 @@ class RecipeImportTest extends TestCase
 
         $this->assertSame(['Skala och koka potatisen.', 'Gratinera i 10-15 minuter.'], $revision->instructionSteps->pluck('instruction_text')->all());
         $this->assertSame(900, $revision->instructionSteps[1]->timer_seconds);
-        $this->assertCount(0, $revision->instructionSections);
+
+        // The editor only shows rows inside a group or section, so even untitled ones get one.
+        $this->assertSame(0, $revision->ingredients()->whereNull('group_id')->count());
+        $this->assertSame(0, $revision->instructionSteps()->whereNull('section_id')->count());
+        $this->assertSame([null], $revision->instructionSections->pluck('title')->all());
 
         $cover = $revision->coverImage();
         $this->assertNotNull($cover);
@@ -212,6 +217,18 @@ class RecipeImportTest extends TestCase
 
         Livewire::test(ImportRecipeStatus::class, ['import' => $import])
             ->assertRedirect(RecipeRevisionResource::getUrl('edit', ['record' => $import->recipe_revision_id]));
+
+        // What the user lands on: the editor's form holds the imported ingredients and steps.
+        $data = Livewire::test(EditRecipeRevision::class, ['record' => $import->recipe_revision_id])->get('data');
+        $groups = array_values($data['ingredientGroups']);
+        $sections = array_values($data['instructionSections']);
+
+        $this->assertSame(['Potatismos', null], array_column($groups, 'title'));
+        $this->assertCount(6, array_merge(...array_map(fn ($group) => array_values($group['ingredients']), $groups)));
+        $this->assertSame(
+            ['Skala och koka potatisen.', 'Gratinera i 10-15 minuter.'],
+            array_column(array_values($sections[0]['steps']), 'instruction_text'),
+        );
     }
 
     public function test_a_failed_import_shows_why_in_the_users_language_and_can_be_retried(): void
