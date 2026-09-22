@@ -24,29 +24,29 @@ class ExampleTest extends TestCase
         $this->withHeader('Accept-Language', 'sv-SE,sv;q=0.9,en;q=0.5')
             ->get('/')
             ->assertSee('<html lang="sv">', false)
-            ->assertSee('Vispa receptsajt');
+            ->assertSee('Samla dina recept', false);
 
         $this->withHeader('Accept-Language', 'de-DE,de;q=0.9')
             ->get('/')
             ->assertSee('<html lang="en">', false)
-            ->assertSee('Vispa recipe site');
+            ->assertSee('Collect your recipes', false);
     }
 
     public function test_the_toggle_overrides_the_browser_and_is_remembered(): void
     {
         $this->withHeader('Accept-Language', 'en-US,en')
             ->get('/?lang=sv')
-            ->assertSee('Vispa receptsajt');
+            ->assertSee('Samla dina recept', false);
 
         $this->withHeader('Accept-Language', 'en-US,en')
             ->get('/')
-            ->assertSee('Vispa receptsajt');
+            ->assertSee('Samla dina recept', false);
     }
 
     public function test_an_unknown_language_in_the_toggle_is_ignored(): void
     {
         $this->withHeader('Accept-Language', 'sv')
             ->get('/?lang=xx')
-            ->assertSee('Vispa receptsajt');
+            ->assertSee('Samla dina recept', false);
     }
 }

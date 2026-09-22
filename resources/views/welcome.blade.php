@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Vispa · {{ __('landing.title') }}</title>
+        <title>Vispa</title>
         <style>
             :root { color-scheme: light dark; --ink: #1f2a1c; --muted: #5c6857; --bg: #f7f8f4; --accent: #dd1f6e; }
             @media (prefers-color-scheme: dark) { :root { --ink: #eef1ea; --muted: #a9b3a3; --bg: #161a14; } }
@@ -41,7 +41,7 @@
                         <path d="M7.4 16.5h11.2" stroke-width="1.3" />
                     </g>
                 </svg>
-                {{ __('landing.title') }}
+                Vispa
             </h1>
 
             <p>{{ __('landing.description') }}</p>
