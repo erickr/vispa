@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ app()->getLocale() }}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Vispa</title>
+        <title>Vispa · {{ __('landing.title') }}</title>
         <style>
             :root { color-scheme: light dark; --ink: #1f2a1c; --muted: #5c6857; --bg: #f7f8f4; --accent: #dd1f6e; }
             @media (prefers-color-scheme: dark) { :root { --ink: #eef1ea; --muted: #a9b3a3; --bg: #161a14; } }
@@ -13,16 +13,24 @@
             main { max-width: 40rem; text-align: center; }
             h1 { font: 600 2.5rem/1.2 ui-serif, Georgia, serif; margin: 0 0 2rem; }
             h1 svg { vertical-align: -0.1em; margin-right: 0.3rem; }
-            section { margin-bottom: 1.5rem; }
-            h2 { font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.25rem; }
             p { margin: 0; }
-            nav { margin-top: 2.5rem; display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
-            a { padding: 0.6rem 1.4rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;
+            .actions { margin-top: 2.5rem; display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+            .actions a { padding: 0.6rem 1.4rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;
                 border: 2px solid var(--accent); color: var(--accent); }
-            a.primary { background: var(--accent); color: #fff; }
+            .actions a.primary { background: var(--accent); color: #fff; }
+            .languages { position: absolute; top: 1rem; right: 1rem; display: flex; gap: 0.25rem; font-size: 0.9rem; }
+            .languages a { padding: 0.2rem 0.6rem; border-radius: 0.4rem; color: var(--muted); text-decoration: none; }
+            .languages a[aria-current] { color: var(--ink); font-weight: 600; background: color-mix(in srgb, var(--accent) 12%, transparent); }
         </style>
     </head>
     <body>
+        <nav class="languages" aria-label="{{ __('landing.language') }}">
+            @foreach ($locales as $code => $label)
+                <a href="{{ route('landing', ['lang' => $code]) }}" lang="{{ $code }}" hreflang="{{ $code }}"
+                    @if ($code === app()->getLocale()) aria-current="true" @endif>{{ $label }}</a>
+            @endforeach
+        </nav>
+
         <main>
             <h1>
                 <svg width="36" height="36" viewBox="0 0 26 26" aria-hidden="true">
@@ -33,24 +41,14 @@
                         <path d="M7.4 16.5h11.2" stroke-width="1.3" />
                     </g>
                 </svg>
-                Vispa recipe site
+                {{ __('landing.title') }}
             </h1>
 
-            <section lang="en">
-                <h2>English</h2>
-                <p>Collect your recipes in one place. Write them yourself or import one from a link,
-                    add photos, keep every version, and keep each recipe in several languages.</p>
-            </section>
+            <p>{{ __('landing.description') }}</p>
 
-            <section lang="sv">
-                <h2>Svenska</h2>
-                <p>Samla dina recept på ett ställe. Skriv dem själv eller importera ett från en länk,
-                    lägg till bilder, behåll varje version och ha varje recept på flera språk.</p>
-            </section>
-
-            <nav>
-                <a class="primary" href="{{ route('filament.app.auth.login') }}">Log in / Logga in</a>
-                <a href="{{ route('filament.app.auth.register') }}">Register / Registrera dig</a>
+            <nav class="actions">
+                <a class="primary" href="{{ route('filament.app.auth.login') }}">{{ __('landing.login') }}</a>
+                <a href="{{ route('filament.app.auth.register') }}">{{ __('landing.register') }}</a>
             </nav>
         </main>
     </body>
