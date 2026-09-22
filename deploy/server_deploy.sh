@@ -25,4 +25,7 @@ echo "Deploying application ..."
 # Exit maintenance mode
 php artisan up
 
+# Restart the hosting provider's queue worker so it picks up the new code
+uapi QueueWorkers update action=restart 0
+
 echo "Application deployed!"
