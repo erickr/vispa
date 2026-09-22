@@ -162,7 +162,13 @@ class SharedRecipeTest extends TestCase
             ->mountAction('share')
             ->assertActionMounted('share');
 
-        $this->assertStringContainsString($recipe->shareUrl(), $this->modalContent($component));
+        $content = $this->modalContent($component);
+
+        $this->assertStringContainsString($recipe->shareUrl(), $content);
+
+        // Blade leaves directives inside a component's attributes uncompiled, which once left the
+        // copy button handing the browser the literal text of an @js() call.
+        $this->assertStringNotContainsString('@js(', $content);
     }
 
     public function test_sharing_a_private_recipe_offers_to_make_it_unlisted_first(): void
