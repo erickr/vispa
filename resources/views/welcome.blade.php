@@ -12,7 +12,7 @@
                    font: 16px/1.6 ui-sans-serif, system-ui, sans-serif; }
             main { max-width: 40rem; text-align: center; }
             h1 { font: 600 2.5rem/1.2 ui-serif, Georgia, serif; margin: 0 0 2rem; }
-            h1 svg { vertical-align: -0.1em; margin-right: 0.3rem; }
+            h1 svg { vertical-align: -0.15em; margin-right: 0.3rem; transform: rotate(45deg); }
             p { margin: 0; }
             .actions { margin-top: 2.5rem; display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
             .actions a { padding: 0.6rem 1.4rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;
