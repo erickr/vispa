@@ -31,6 +31,7 @@ class AppPanelProvider extends PanelProvider
             ->path('app')
             ->viteTheme('resources/css/filament/app/theme.css')
             ->login()
+            ->registration()
             ->profile(EditProfile::class, isSimple: false)
             ->brandName('Vispa')
             ->brandLogo(fn () => view('filament.brand'))
