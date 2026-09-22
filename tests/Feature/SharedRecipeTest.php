@@ -5,12 +5,12 @@ namespace Tests\Feature;
 use App\Filament\Resources\RecipeRevisions\Pages\ViewRecipeRevision;
 use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Filament\Resources\Recipes\Pages\ListRecipes;
+use App\Filament\Resources\Recipes\RecipeResource;
 use App\Models\Ingredient;
 use App\Models\Recipe;
 use App\Models\RecipeRevision;
 use App\Models\Unit;
 use App\Models\User;
-use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -156,11 +156,11 @@ class SharedRecipeTest extends TestCase
         $this->actingAs($user);
 
         $recipe = $this->recipe('unlisted', ['owner_user_id' => $user->id]);
-        $this->revision($recipe);
+        $revision = $this->revision($recipe);
 
-        $component = Livewire::test(ListRecipes::class)
-            ->mountAction(TestAction::make('share')->table($recipe))
-            ->assertActionMounted(TestAction::make('share')->table($recipe));
+        $component = Livewire::test(ViewRecipeRevision::class, ['record' => $revision->getKey()])
+            ->mountAction('share')
+            ->assertActionMounted('share');
 
         $this->assertStringContainsString($recipe->shareUrl(), $this->modalContent($component));
     }
@@ -171,10 +171,10 @@ class SharedRecipeTest extends TestCase
         $this->actingAs($user);
 
         $recipe = $this->recipe('private', ['owner_user_id' => $user->id]);
-        $this->revision($recipe);
+        $revision = $this->revision($recipe);
 
-        $component = Livewire::test(ListRecipes::class)
-            ->mountAction(TestAction::make('share')->table($recipe));
+        $component = Livewire::test(ViewRecipeRevision::class, ['record' => $revision->getKey()])
+            ->mountAction('share');
 
         // The link is withheld until the owner agrees to the change: the modal explains instead.
         $this->assertSame(
@@ -227,27 +227,18 @@ class SharedRecipeTest extends TestCase
         $this->assertNull(Livewire::test(ListRecipes::class)->instance()->getTable()->getRecordUrl($recipe));
     }
 
-    public function test_the_share_button_is_on_the_recipe_page_too(): void
+    public function test_the_recipe_page_carries_edit_share_and_settings(): void
     {
         $user = User::factory()->create();
         $this->actingAs($user);
 
-        $recipe = $this->recipe('private', ['owner_user_id' => $user->id]);
+        $recipe = $this->recipe('public', ['owner_user_id' => $user->id]);
         $revision = $this->revision($recipe);
 
-        $component = Livewire::test(ViewRecipeRevision::class, ['record' => $revision->getKey()])
-            ->mountAction('share');
-
-        // Same two-step as everywhere else: a private recipe is asked about before it is shared.
-        $this->assertSame(
-            __('recipe.share.private_heading'),
-            $component->instance()->getMountedAction()->getModalHeading(),
-        );
-
-        $component->callMountedAction();
-
-        $this->assertSame('unlisted', $recipe->fresh()->visibility);
-        $this->assertStringContainsString($recipe->shareUrl(), $this->modalContent($component));
+        Livewire::test(ViewRecipeRevision::class, ['record' => $revision->getKey()])
+            ->assertActionExists('edit')
+            ->assertActionExists('share')
+            ->assertActionHasUrl('settings', RecipeResource::getUrl('edit', ['record' => $recipe->getKey()]));
     }
 
     /**

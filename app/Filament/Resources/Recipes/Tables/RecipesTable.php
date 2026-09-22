@@ -2,14 +2,11 @@
 
 namespace App\Filament\Resources\Recipes\Tables;
 
-use App\Filament\Actions\ShareRecipeAction;
 use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Models\Recipe;
 use App\Models\RecipeRevision;
-use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
@@ -100,27 +97,13 @@ class RecipesTable
                     ->query(fn (Builder $query): Builder => $query->whereNotNull('source_url')),
             ])
             ->defaultSort('updated_at', 'desc')
-            // Clicking the row opens the recipe to read, the way clicking its name does in the
-            // mockup — editing is a step further in, behind its own action. A recipe with no
-            // revision has nothing to read, so it opens where the writing starts.
+            // The row is the only thing to click: it opens the recipe to read, and everything
+            // else — editing, sharing, settings — is on that page. A recipe with no revision has
+            // nothing to read yet, so it opens where the writing starts.
             ->recordUrl(fn (Recipe $record): ?string => self::viewUrl($record) ?? self::editContentUrl($record))
             ->emptyStateHeading(__('recipe.table.empty_heading'))
             ->emptyStateDescription(__('recipe.table.empty_description'))
             ->emptyStateIcon(Heroicon::OutlinedBookOpen)
-            ->recordActions([
-                Action::make('view')
-                    ->label(__('recipe.actions.view'))
-                    ->icon(Heroicon::OutlinedEye)
-                    ->url(fn (Recipe $record): ?string => self::viewUrl($record))
-                    ->visible(fn (Recipe $record): bool => self::viewUrl($record) !== null),
-                Action::make('editContent')
-                    ->label(__('recipe.actions.edit_content'))
-                    ->icon(Heroicon::OutlinedPencilSquare)
-                    ->url(fn (Recipe $record): ?string => self::editContentUrl($record))
-                    ->visible(fn (Recipe $record): bool => self::editContentUrl($record) !== null),
-                ShareRecipeAction::make(),
-                EditAction::make()->label(__('recipe.actions.settings')),
-            ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

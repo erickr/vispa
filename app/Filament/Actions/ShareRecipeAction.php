@@ -7,7 +7,6 @@ use App\Models\RecipeRevision;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Contracts\HasTable;
 use Illuminate\Database\Eloquent\Model;
 use Livewire\Component;
 
@@ -70,11 +69,9 @@ class ShareRecipeAction
 
                 // Re-open on the now-unlisted recipe, which is the branch that shows the link.
                 // The extra context key is what marks this as a replacement rather than the same
-                // modal — Filament compares name and context to decide whether to unmount.
-                $livewire->replaceMountedAction($name, context: [
-                    ...($livewire instanceof HasTable ? ['table' => true, 'recordKey' => $record->getKey()] : []),
-                    'shared' => true,
-                ]);
+                // modal — Filament compares name and context to decide whether to unmount. A table
+                // action would need its own ['table' => true, 'recordKey' => …] here as well.
+                $livewire->replaceMountedAction($name, context: ['shared' => true]);
             });
     }
 

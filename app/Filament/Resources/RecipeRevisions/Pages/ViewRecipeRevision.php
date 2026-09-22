@@ -9,6 +9,7 @@ use App\Filament\Resources\Recipes\RecipeResource;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 class ViewRecipeRevision extends ViewRecord
 {
@@ -22,10 +23,16 @@ class ViewRecipeRevision extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            ShareRecipeAction::make(),
             Action::make('edit')
                 ->label(__('revision.actions.edit_content'))
                 ->url(fn (): string => RecipeRevisionResource::getUrl('edit', ['record' => $this->record])),
+            ShareRecipeAction::make(),
+            // The recipe's own settings — visibility, source link, slugs — live a layer up.
+            Action::make('settings')
+                ->label(__('recipe.actions.settings'))
+                ->icon(Heroicon::OutlinedCog6Tooth)
+                ->color('gray')
+                ->url(fn (): string => RecipeResource::getUrl('edit', ['record' => $this->record->recipe_id])),
         ];
     }
 
