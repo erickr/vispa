@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\RecipeRevisions\Pages\ViewRecipeRevision;
+use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Filament\Resources\Recipes\Pages\ListRecipes;
 use App\Models\Ingredient;
 use App\Models\Recipe;
@@ -197,6 +199,55 @@ class SharedRecipeTest extends TestCase
         $this->assertStringContainsString($recipe->shareUrl(), $this->modalContent($component));
 
         $this->get($recipe->shareUrl())->assertOk();
+    }
+
+    public function test_a_recipe_row_opens_the_recipe_to_read(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $recipe = $this->recipe('private', ['owner_user_id' => $user->id]);
+        $revision = $this->revision($recipe);
+
+        $table = Livewire::test(ListRecipes::class)->instance()->getTable();
+
+        $this->assertSame(
+            RecipeRevisionResource::getUrl('view', ['record' => $revision]),
+            $table->getRecordUrl($recipe),
+        );
+    }
+
+    public function test_a_recipe_with_nothing_written_yet_opens_where_the_writing_starts(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $recipe = $this->recipe('private', ['owner_user_id' => $user->id]);
+
+        $this->assertNull(Livewire::test(ListRecipes::class)->instance()->getTable()->getRecordUrl($recipe));
+    }
+
+    public function test_the_share_button_is_on_the_recipe_page_too(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $recipe = $this->recipe('private', ['owner_user_id' => $user->id]);
+        $revision = $this->revision($recipe);
+
+        $component = Livewire::test(ViewRecipeRevision::class, ['record' => $revision->getKey()])
+            ->mountAction('share');
+
+        // Same two-step as everywhere else: a private recipe is asked about before it is shared.
+        $this->assertSame(
+            __('recipe.share.private_heading'),
+            $component->instance()->getMountedAction()->getModalHeading(),
+        );
+
+        $component->callMountedAction();
+
+        $this->assertSame('unlisted', $recipe->fresh()->visibility);
+        $this->assertStringContainsString($recipe->shareUrl(), $this->modalContent($component));
     }
 
     /**

@@ -100,8 +100,10 @@ class RecipesTable
                     ->query(fn (Builder $query): Builder => $query->whereNotNull('source_url')),
             ])
             ->defaultSort('updated_at', 'desc')
-            // Clicking the row opens the recipe, the way clicking its name does in the mockup.
-            ->recordUrl(fn (Recipe $record): ?string => self::editContentUrl($record))
+            // Clicking the row opens the recipe to read, the way clicking its name does in the
+            // mockup — editing is a step further in, behind its own action. A recipe with no
+            // revision has nothing to read, so it opens where the writing starts.
+            ->recordUrl(fn (Recipe $record): ?string => self::viewUrl($record) ?? self::editContentUrl($record))
             ->emptyStateHeading(__('recipe.table.empty_heading'))
             ->emptyStateDescription(__('recipe.table.empty_description'))
             ->emptyStateIcon(Heroicon::OutlinedBookOpen)
@@ -109,14 +111,8 @@ class RecipesTable
                 Action::make('view')
                     ->label(__('recipe.actions.view'))
                     ->icon(Heroicon::OutlinedEye)
-                    ->url(function (Recipe $record): ?string {
-                        $revision = $record->displayRevision();
-
-                        return $revision
-                            ? RecipeRevisionResource::getUrl('view', ['record' => $revision])
-                            : null;
-                    })
-                    ->visible(fn (Recipe $record): bool => $record->displayRevision() !== null),
+                    ->url(fn (Recipe $record): ?string => self::viewUrl($record))
+                    ->visible(fn (Recipe $record): bool => self::viewUrl($record) !== null),
                 Action::make('editContent')
                     ->label(__('recipe.actions.edit_content'))
                     ->icon(Heroicon::OutlinedPencilSquare)
@@ -160,6 +156,15 @@ class RecipesTable
             trans_choice('recipe.summary.steps', $steps),
             $photos ? trans_choice('recipe.summary.photos', $photos) : __('recipe.summary.no_photos'),
         ]));
+    }
+
+    private static function viewUrl(Recipe $record): ?string
+    {
+        $revision = $record->displayRevision();
+
+        return $revision
+            ? RecipeRevisionResource::getUrl('view', ['record' => $revision])
+            : null;
     }
 
     private static function editContentUrl(Recipe $record): ?string

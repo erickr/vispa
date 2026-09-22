@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RecipeRevisions\Pages;
 
+use App\Filament\Actions\ShareRecipeAction;
 use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Filament\Resources\RecipeRevisions\Schemas\RecipeRevisionInfolist;
 use App\Filament\Resources\Recipes\RecipeResource;
@@ -21,6 +22,7 @@ class ViewRecipeRevision extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            ShareRecipeAction::make(),
             Action::make('edit')
                 ->label(__('revision.actions.edit_content'))
                 ->url(fn (): string => RecipeRevisionResource::getUrl('edit', ['record' => $this->record])),

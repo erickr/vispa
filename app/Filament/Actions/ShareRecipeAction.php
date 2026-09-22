@@ -3,10 +3,12 @@
 namespace App\Filament\Actions;
 
 use App\Models\Recipe;
+use App\Models\RecipeRevision;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Contracts\HasTable;
+use Illuminate\Database\Eloquent\Model;
 use Livewire\Component;
 
 /**
@@ -15,6 +17,10 @@ use Livewire\Component;
  * A private recipe has no page to link to, so the modal explains what unlisted means and offers
  * to switch. Only once the owner agrees does the link appear: the same action re-opens, now on a
  * shareable recipe, showing the URL.
+ *
+ * Sharing is a property of the recipe, but the pages that offer it are not all recipe pages —
+ * a revision is what the cook is looking at when they decide to pass it on — so the action takes
+ * either record and works on the recipe behind it.
  */
 class ShareRecipeAction
 {
@@ -25,30 +31,36 @@ class ShareRecipeAction
             ->icon(Heroicon::OutlinedShare)
             ->color('gray')
             ->modalIcon(Heroicon::OutlinedShare)
-            ->modalHeading(fn (Recipe $record): string => $record->isShareable()
+            ->modalHeading(fn (Model $record): string => static::recipe($record)->isShareable()
                 ? __('recipe.share.heading')
                 : __('recipe.share.private_heading'))
-            ->modalDescription(fn (Recipe $record): string => $record->isShareable()
+            ->modalDescription(fn (Model $record): string => static::recipe($record)->isShareable()
                 ? __('recipe.share.description')
                 : __('recipe.share.private_description'))
-            ->modalContent(fn (Recipe $record) => $record->isShareable()
-                ? view('filament.recipes.share-link', [
-                    'url' => $record->shareUrl(),
-                    'isDraft' => $record->sharedRevisions()->every(fn ($revision): bool => $revision->status !== 'published'),
-                ])
-                : null)
+            ->modalContent(function (Model $record) {
+                $recipe = static::recipe($record);
+
+                return $recipe->isShareable()
+                    ? view('filament.recipes.share-link', [
+                        'url' => $recipe->shareUrl(),
+                        'isDraft' => $recipe->sharedRevisions()->every(fn (RecipeRevision $revision): bool => $revision->status !== 'published'),
+                    ])
+                    : null;
+            })
             // Nothing to submit once the link is on screen: the modal is the answer.
-            ->modalSubmitAction(fn (Recipe $record) => $record->isShareable() ? false : null)
+            ->modalSubmitAction(fn (Model $record) => static::recipe($record)->isShareable() ? false : null)
             ->modalSubmitActionLabel(__('recipe.share.make_unlisted'))
-            ->modalCancelActionLabel(fn (Recipe $record): string => $record->isShareable()
+            ->modalCancelActionLabel(fn (Model $record): string => static::recipe($record)->isShareable()
                 ? __('recipe.share.close')
                 : __('filament-actions::modal.actions.cancel.label'))
-            ->action(function (Recipe $record, Component $livewire) use ($name): void {
-                if ($record->isShareable()) {
+            ->action(function (Model $record, Component $livewire) use ($name): void {
+                $recipe = static::recipe($record);
+
+                if ($recipe->isShareable()) {
                     return;
                 }
 
-                $record->update(['visibility' => 'unlisted']);
+                $recipe->update(['visibility' => 'unlisted']);
 
                 Notification::make()
                     ->title(__('recipe.share.now_unlisted.title'))
@@ -64,5 +76,10 @@ class ShareRecipeAction
                     'shared' => true,
                 ]);
             });
+    }
+
+    private static function recipe(Model $record): Recipe
+    {
+        return $record instanceof RecipeRevision ? $record->recipe : $record;
     }
 }
