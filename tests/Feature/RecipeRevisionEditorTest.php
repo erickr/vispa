@@ -6,6 +6,7 @@ use App\Filament\Resources\RecipeRevisions\Pages\EditRecipeRevision;
 use App\Filament\Resources\RecipeRevisions\Pages\ViewRecipeRevision;
 use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Filament\Resources\Recipes\Pages\CreateRecipe;
+use App\Filament\Resources\Recipes\Pages\ListRecipes;
 use App\Models\Ingredient;
 use App\Models\Recipe;
 use App\Models\RecipeRevision;
@@ -168,7 +169,7 @@ class RecipeRevisionEditorTest extends TestCase
             ->assertSee('Mix and fry.');
     }
 
-    public function test_display_revision_prefers_published_default_locale_latest(): void
+    public function test_display_revision_prefers_the_newest_work_in_the_default_locale(): void
     {
         $user = $this->owner();
         $recipe = $this->recipeFor($user); // default_locale = 'en'
@@ -177,8 +178,13 @@ class RecipeRevisionEditorTest extends TestCase
         $recipe->revisions()->create(['locale' => 'en', 'version_number' => 2, 'status' => 'draft', 'title' => 'en v2 draft', 'created_by_user_id' => $user->id]);
         $recipe->revisions()->create(['locale' => 'sv', 'version_number' => 3, 'status' => 'published', 'title' => 'sv v3', 'created_by_user_id' => $user->id, 'published_at' => now()]);
 
-        // Published beats the higher-versioned draft; among published, the default locale (en) wins.
-        $this->assertSame('en v1', $recipe->displayRevision()->title);
+        // A draft started off the published version is what the cook is working on, so it leads;
+        // the default locale (en) still wins over the higher-versioned Swedish revision.
+        $this->assertSame('en v2 draft', $recipe->displayRevision()->title);
+
+        // An archived revision only leads when there is nothing else.
+        $recipe->revisions()->where('version_number', 2)->update(['status' => 'archived']);
+        $this->assertSame('en v1', $recipe->fresh()->displayRevision()->title);
     }
 
     /**
@@ -236,6 +242,25 @@ class RecipeRevisionEditorTest extends TestCase
         // Cloned ingredient points at the cloned group, not the original.
         $this->assertSame($draft->ingredientGroups()->first()->id, $draft->ingredients->first()->group_id);
         $this->assertSame($draft->id, $draft->ingredients->first()->recipe_revision_id);
+    }
+
+    public function test_a_started_revision_leads_the_recipe_list(): void
+    {
+        $user = $this->owner();
+        [$recipe, $published] = $this->publishedRecipeWithContent($user);
+
+        Livewire::test(EditRecipeRevision::class, ['record' => $published->getKey()])
+            ->callMountedAction();
+
+        RecipeRevision::where('recipe_id', $recipe->id)->where('status', 'draft')->firstOrFail()
+            ->update(['title' => 'Original, in progress']);
+
+        Livewire::test(ListRecipes::class)
+            ->assertSee('Original, in progress')
+            ->assertSee(RecipeRevision::statusWord('draft'));
+
+        // The public page is not dragged along: it keeps showing what was published.
+        $this->assertSame('Original', $recipe->fresh()->sharedRevision()->title);
     }
 
     public function test_saying_yes_reuses_an_open_draft_rather_than_stacking_another(): void

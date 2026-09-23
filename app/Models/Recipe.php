@@ -130,8 +130,11 @@ class Recipe extends Model
     }
 
     /**
-     * The revision to surface when viewing the recipe: prefer a published one, then the default
-     * locale, then the highest version number.
+     * The revision to surface when the owner looks at their own recipe: their newest work in the
+     * recipe's default locale. A draft started off a published version therefore takes over the
+     * listing — it is what they are cooking from now — while the published version keeps the
+     * public page to itself (see sharedRevisions()). An archived revision only shows when there
+     * is nothing else left.
      */
     public function displayRevision(): ?RecipeRevision
     {
@@ -142,7 +145,7 @@ class Recipe extends Model
             return $this->revisions
                 ->sortByDesc(fn (RecipeRevision $revision): string => sprintf(
                     '%d%d%09d',
-                    $revision->status === 'published' ? 1 : 0,
+                    $revision->status === 'archived' ? 0 : 1,
                     $revision->locale === $this->default_locale ? 1 : 0,
                     $revision->version_number,
                 ))
@@ -150,7 +153,7 @@ class Recipe extends Model
         }
 
         return $this->revisions()
-            ->orderByRaw("(status = 'published') desc")
+            ->orderByRaw("(status = 'archived') asc")
             ->orderByRaw('(locale = ?) desc', [$this->default_locale])
             ->orderByDesc('version_number')
             ->first();

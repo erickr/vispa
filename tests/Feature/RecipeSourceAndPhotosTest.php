@@ -201,8 +201,8 @@ class RecipeSourceAndPhotosTest extends TestCase
 
         // The list renders a title, a status and a cover per row, so it eager-loads and the sort
         // happens in PHP. That path must pick the same revision as the SQL one.
-        $this->assertSame('en v1', $recipe->fresh()->displayRevision()->title);
-        $this->assertSame('en v1', Recipe::with('revisions')->find($recipe->id)->displayRevision()->title);
+        $this->assertSame('en v2 draft', $recipe->fresh()->displayRevision()->title);
+        $this->assertSame('en v2 draft', Recipe::with('revisions')->find($recipe->id)->displayRevision()->title);
     }
 
     public function test_the_list_shows_the_recipe_name_and_what_is_written_down(): void
