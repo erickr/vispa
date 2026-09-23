@@ -17,6 +17,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\HtmlString;
 
 class RecipeRevisionInfolist
 {
@@ -165,13 +166,28 @@ class RecipeRevisionInfolist
                 ]),
 
             Section::make(__('revision.infolist.revision_heading'))
-                ->collapsed()
                 ->schema([
                     Grid::make(3)->schema([
                         TextEntry::make('locale')->label(__('revision.fields.locale'))->badge(),
                         TextEntry::make('version_number')->label(__('revision.fields.version'))->prefix('v'),
                         TextEntry::make('published_at')->label(__('revision.fields.published_at'))->dateTime()->placeholder(__('revision.infolist.not_published')),
                     ]),
+
+                    // Every other version of this recipe, in every language it is written in —
+                    // the way back to the published one after reading a draft, and the way across
+                    // to the Swedish version of an English page.
+                    TextEntry::make('siblings')
+                        ->label(__('revision.infolist.other_versions'))
+                        ->state(fn (RecipeRevision $record): HtmlString => new HtmlString(view('filament.revisions.links', [
+                            'current' => $record,
+                            'revisions' => $record->recipe
+                                ->revisions()
+                                ->orderByRaw('(locale = ?) desc', [$record->locale])
+                                ->orderBy('locale')
+                                ->orderByDesc('version_number')
+                                ->get(),
+                        ])->render()))
+                        ->columnSpanFull(),
                 ]),
         ])->columns(1);
     }

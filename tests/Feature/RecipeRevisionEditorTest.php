@@ -263,6 +263,38 @@ class RecipeRevisionEditorTest extends TestCase
         $this->assertSame('Original', $recipe->fresh()->sharedRevision()->title);
     }
 
+    public function test_the_view_page_links_to_the_other_versions(): void
+    {
+        $user = $this->owner();
+        [$recipe, $published] = $this->publishedRecipeWithContent($user);
+
+        $draft = $recipe->revisions()->create([
+            'locale' => 'en',
+            'version_number' => 2,
+            'status' => 'draft',
+            'title' => 'Original, in progress',
+            'created_by_user_id' => $user->id,
+        ]);
+        $swedish = $recipe->revisions()->create([
+            'locale' => 'sv',
+            'version_number' => 1,
+            'status' => 'published',
+            'title' => 'Originalet',
+            'created_by_user_id' => $user->id,
+            'published_at' => now(),
+        ]);
+
+        // Matched as whole hrefs: a revision's view URL is a prefix of its own edit URL.
+        $href = fn (RecipeRevision $revision): string => 'href="'.RecipeRevisionResource::getUrl('view', ['record' => $revision]).'"';
+
+        Livewire::test(ViewRecipeRevision::class, ['record' => $published->getKey()])
+            ->assertSee($href($draft), false)
+            ->assertSee($href($swedish), false)
+            // The version being read is named but not linked — a link to this page goes nowhere.
+            ->assertDontSee($href($published), false)
+            ->assertSee(__('revision.infolist.you_are_here'));
+    }
+
     public function test_saying_yes_reuses_an_open_draft_rather_than_stacking_another(): void
     {
         $user = $this->owner();

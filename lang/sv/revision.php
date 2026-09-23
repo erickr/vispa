@@ -115,6 +115,8 @@ return [
         'instructions_heading' => 'Så gör du',
         'photos_heading' => 'Foton',
         'revision_heading' => 'Revision',
+        'other_versions' => 'Alla versioner',
+        'you_are_here' => 'den du läser nu',
         'step_number' => 'Steg :number',
         'timer' => 'Timer',
         'no_photo_description' => 'Ingen beskrivning',

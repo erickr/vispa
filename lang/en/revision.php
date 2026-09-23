@@ -117,6 +117,8 @@ return [
         'instructions_heading' => 'How to make it',
         'photos_heading' => 'Photos',
         'revision_heading' => 'Revision',
+        'other_versions' => 'All versions',
+        'you_are_here' => 'you are reading this one',
         'step_number' => 'Step :number',
         'timer' => 'Timer',
         'no_photo_description' => 'No description',
