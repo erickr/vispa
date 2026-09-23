@@ -109,6 +109,47 @@ class RecipeImportTest extends TestCase
         ]);
     }
 
+    public function test_the_sidebar_offers_both_ways_to_start_a_recipe(): void
+    {
+        $this->actingAs($this->user);
+
+        $items = collect(Filament::getCurrentOrDefaultPanel()->getNavigationItems())
+            ->filter(fn ($item): bool => $item->isVisible())
+            ->keyBy(fn ($item): string => $item->getLabel());
+
+        $this->assertSame(
+            RecipeResource::getUrl('create'),
+            $items[__('navigation.items.new_recipe')]->getUrl(),
+        );
+        $this->assertSame(
+            RecipeResource::getUrl('index').'?action=importFromLink',
+            $items[__('recipe.import.action')]->getUrl(),
+        );
+    }
+
+    public function test_the_import_item_is_hidden_without_an_api_key(): void
+    {
+        $this->actingAs($this->user);
+        config(['services.anthropic.key' => null]);
+
+        $labels = collect(Filament::getCurrentOrDefaultPanel()->getNavigationItems())
+            ->filter(fn ($item): bool => $item->isVisible())
+            ->map(fn ($item): string => $item->getLabel());
+
+        $this->assertFalse($labels->contains(__('recipe.import.action')));
+        $this->assertTrue($labels->contains(__('navigation.items.new_recipe')));
+    }
+
+    public function test_the_import_link_opens_the_import_modal(): void
+    {
+        $this->actingAs($this->user);
+
+        Livewire::withQueryParams(['action' => 'importFromLink'])
+            ->test(ListRecipes::class)
+            ->call('mountAction', 'importFromLink')
+            ->assertActionMounted('importFromLink');
+    }
+
     public function test_the_importer_writes_a_private_draft_with_everything_it_read(): void
     {
         $this->fakeWeb();

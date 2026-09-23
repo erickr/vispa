@@ -3,15 +3,18 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\EditProfile;
+use App\Filament\Resources\Recipes\RecipeResource;
 use App\Http\Middleware\SetUserLocale;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -62,6 +65,27 @@ class AppPanelProvider extends PanelProvider
                 // The gray ramp is deliberately absent: it is set in the theme's @theme block so
                 // the whole panel picks up Vispa's green-biased neutrals. A 'gray' entry here
                 // would be injected inline and win over it.
+            ])
+            // The two ways a recipe starts, alongside the list itself: one link each in the
+            // sidebar, rather than buttons that only exist once you are on the list page. The
+            // import item opens the list with its modal already mounted (?action=…, which the
+            // panel's page view knows how to honour).
+            ->navigationItems([
+                NavigationItem::make('createRecipe')
+                    ->label(fn (): string => __('navigation.items.new_recipe'))
+                    ->icon(Heroicon::OutlinedPlusCircle)
+                    ->group(fn (): string => __('navigation.groups.my_recipes'))
+                    ->sort(11)
+                    ->url(fn (): string => RecipeResource::getUrl('create'))
+                    ->isActiveWhen(fn (): bool => request()->routeIs('filament.app.resources.recipes.create')),
+
+                NavigationItem::make('importRecipe')
+                    ->label(fn (): string => __('recipe.import.action'))
+                    ->icon(Heroicon::OutlinedArrowDownTray)
+                    ->group(fn (): string => __('navigation.groups.my_recipes'))
+                    ->sort(12)
+                    ->visible(fn (): bool => filled(config('services.anthropic.key')))
+                    ->url(fn (): string => RecipeResource::getUrl('index').'?action=importFromLink'),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
