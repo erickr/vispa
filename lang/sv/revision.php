@@ -121,10 +121,18 @@ return [
         'not_published' => 'Inte publicerad',
     ],
 
+    'published_choice' => [
+        'heading' => 'Den här versionen är publicerad',
+        'description' => 'Alla som har länken kan läsa den just nu. Skapa en ny revision att arbeta i, eller ändra den här som den är.',
+        'new_revision' => 'Skapa en ny revision',
+        'edit_in_place' => 'Ändra den här versionen',
+        'cancel' => 'Låt den vara',
+    ],
+
     'notifications' => [
         'draft_copy' => [
-            'title' => 'Redigerar en kopia som utkast',
-            'body' => 'Publicerade revisioner kan inte ändras, så du redigerar nu utkast v:version.',
+            'title' => 'Redigerar utkast v:version',
+            'body' => 'Den publicerade versionen ligger kvar som den är tills du publicerar den här.',
         ],
     ],
 

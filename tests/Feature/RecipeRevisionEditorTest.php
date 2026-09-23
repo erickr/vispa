@@ -181,9 +181,11 @@ class RecipeRevisionEditorTest extends TestCase
         $this->assertSame('en v1', $recipe->displayRevision()->title);
     }
 
-    public function test_editing_a_published_revision_redirects_to_a_draft_fork(): void
+    /**
+     * @return array{0: Recipe, 1: RecipeRevision}
+     */
+    private function publishedRecipeWithContent(User $user): array
     {
-        $user = $this->owner();
         $recipe = $this->recipeFor($user);
 
         $published = $recipe->revisions()->create([
@@ -195,15 +197,34 @@ class RecipeRevisionEditorTest extends TestCase
             'published_at' => now(),
         ]);
         $group = $published->ingredientGroups()->create(['title' => 'G1', 'sort_order' => 0]);
-        $flour = Ingredient::create(['canonical_name' => 'flour']);
         $published->ingredients()->create([
             'group_id' => $group->id,
-            'ingredient_id' => $flour->id,
+            'ingredient_id' => Ingredient::create(['canonical_name' => 'flour'])->id,
             'quantity' => 100,
             'sort_order' => 0,
         ]);
 
-        Livewire::test(EditRecipeRevision::class, ['record' => $published->getKey()]);
+        return [$recipe, $published];
+    }
+
+    public function test_opening_a_published_revision_asks_before_creating_anything(): void
+    {
+        [$recipe, $published] = $this->publishedRecipeWithContent($this->owner());
+
+        Livewire::test(EditRecipeRevision::class, ['record' => $published->getKey()])
+            ->assertActionMounted('revisionChoice');
+
+        // Nothing is written until the question is answered.
+        $this->assertSame(1, $recipe->revisions()->count());
+    }
+
+    public function test_saying_yes_forks_the_published_revision_into_a_draft(): void
+    {
+        $user = $this->owner();
+        [$recipe, $published] = $this->publishedRecipeWithContent($user);
+
+        Livewire::test(EditRecipeRevision::class, ['record' => $published->getKey()])
+            ->callMountedAction();
 
         // The published revision is untouched; a new draft fork exists with copied content.
         $this->assertSame('published', $published->fresh()->status);
@@ -215,5 +236,53 @@ class RecipeRevisionEditorTest extends TestCase
         // Cloned ingredient points at the cloned group, not the original.
         $this->assertSame($draft->ingredientGroups()->first()->id, $draft->ingredients->first()->group_id);
         $this->assertSame($draft->id, $draft->ingredients->first()->recipe_revision_id);
+    }
+
+    public function test_saying_yes_reuses_an_open_draft_rather_than_stacking_another(): void
+    {
+        $user = $this->owner();
+        [$recipe, $published] = $this->publishedRecipeWithContent($user);
+
+        $existing = $recipe->revisions()->create([
+            'locale' => 'en',
+            'version_number' => 2,
+            'status' => 'draft',
+            'title' => 'Already going',
+            'created_by_user_id' => $user->id,
+        ]);
+
+        Livewire::test(EditRecipeRevision::class, ['record' => $published->getKey()])
+            ->callMountedAction()
+            ->assertRedirect(RecipeRevisionResource::getUrl('edit', ['record' => $existing]));
+
+        $this->assertSame(2, $recipe->revisions()->count());
+    }
+
+    public function test_saying_no_edits_the_published_revision_in_place(): void
+    {
+        $user = $this->owner();
+        [$recipe, $published] = $this->publishedRecipeWithContent($user);
+
+        Livewire::test(EditRecipeRevision::class, ['record' => $published->getKey()])
+            ->mountAction('editInPlace')
+            ->assertActionNotMounted()
+            ->fillForm(['title' => 'Original, corrected'])
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertSame('Original, corrected', $published->fresh()->title);
+        $this->assertSame(1, $recipe->revisions()->count());
+    }
+
+    public function test_cancelling_leaves_the_revision_alone(): void
+    {
+        [$recipe, $published] = $this->publishedRecipeWithContent($this->owner());
+
+        Livewire::test(EditRecipeRevision::class, ['record' => $published->getKey()])
+            ->mountAction('leaveItAlone')
+            ->assertRedirect(RecipeRevisionResource::getUrl('view', ['record' => $published]));
+
+        $this->assertSame(1, $recipe->revisions()->count());
+        $this->assertSame('Original', $published->fresh()->title);
     }
 }

@@ -123,10 +123,18 @@ return [
         'not_published' => 'Not published',
     ],
 
+    'published_choice' => [
+        'heading' => 'This version is published',
+        'description' => 'Anyone holding the link may be reading it right now. Start a new revision to work on, or change this one as it stands.',
+        'new_revision' => 'Start a new revision',
+        'edit_in_place' => 'Edit this version',
+        'cancel' => 'Leave it alone',
+    ],
+
     'notifications' => [
         'draft_copy' => [
-            'title' => 'Editing a draft copy',
-            'body' => "Published revisions are immutable, so you're now editing draft v:version.",
+            'title' => 'Editing draft v:version',
+            'body' => 'The published version stays as it is until you publish this one.',
         ],
     ],
 
