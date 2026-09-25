@@ -56,6 +56,11 @@ return [
         'cancel_invitation' => 'Cancel invitation',
     ],
 
+    'widget' => [
+        'heading' => 'Recipes per household',
+        'members' => '{1} :count member|[2,*] :count members',
+    ],
+
     'notifications' => [
         'invited' => 'Invitation sent to :email',
         'left' => 'You have left :household',

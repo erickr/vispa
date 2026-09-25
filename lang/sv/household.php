@@ -56,6 +56,11 @@ return [
         'cancel_invitation' => 'Avbryt inbjudan',
     ],
 
+    'widget' => [
+        'heading' => 'Recept per hushåll',
+        'members' => '{1} :count medlem|[2,*] :count medlemmar',
+    ],
+
     'notifications' => [
         'invited' => 'Inbjudan skickad till :email',
         'left' => 'Du har lämnat :household',
