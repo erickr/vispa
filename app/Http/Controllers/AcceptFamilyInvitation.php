@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Filament\Resources\Recipes\RecipeResource;
+use App\Filament\Pages\Family;
 use App\Models\TeamInvitation;
 use Filament\Notifications\Notification;
 use Illuminate\Http\RedirectResponse;
@@ -31,7 +31,7 @@ class AcceptFamilyInvitation extends Controller
                 ->persistent()
                 ->send();
 
-            return redirect()->to(RecipeResource::getUrl('index'));
+            return redirect()->to(Family::getUrl());
         }
 
         if (! $user->belongsToTeam($family)) {
@@ -47,6 +47,6 @@ class AcceptFamilyInvitation extends Controller
             ->success()
             ->send();
 
-        return redirect()->to(RecipeResource::getUrl('index'));
+        return redirect()->to(Family::getUrl());
     }
 }

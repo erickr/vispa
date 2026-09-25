@@ -1,4 +1,4 @@
-{{-- Jetstream's own copy points at Fortify's registration, which is off here; new members sign up in the panel. --}}
+{{-- Sent by App\Mail\FamilyInvitation. New members sign up in the panel; Fortify's registration is off. --}}
 @component('mail::message')
 {{ __('family.invitation.intro', ['family' => $invitation->team->name, 'app' => config('app.name')]) }}
 

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Actions\Families\CreatePersonalFamily;
+use App\Filament\Pages\Family;
 use App\Models\Team;
 use App\Models\User;
 use Filament\Auth\Pages\Register;
@@ -74,23 +75,30 @@ class FamilyTest extends TestCase
         $this->assertTrue($user->currentTeam->personal_team);
     }
 
-    public function test_the_family_page_is_reachable_from_the_panel(): void
+    public function test_the_family_page_is_in_the_panel(): void
     {
         $user = User::factory()->create(['name' => 'Eric Krona']);
-        $family = app(CreatePersonalFamily::class)->handle($user);
+        app(CreatePersonalFamily::class)->handle($user);
 
         $this->actingAs($user->fresh())
-            ->get(route('teams.show', $family))
+            ->get(Family::getUrl())
             ->assertOk()
-            ->assertSee('The Krona family');
+            ->assertSee('The Krona family')
+            // Rendered in the panel's own layout, sidebar included.
+            ->assertSee('fi-sidebar', escape: false);
     }
 
-    public function test_guests_are_sent_to_the_panel_login(): void
+    public function test_jetstreams_own_pages_lead_to_the_panel(): void
     {
         $user = User::factory()->create();
         $family = app(CreatePersonalFamily::class)->handle($user);
 
-        $this->get(route('teams.show', $family))->assertRedirect(route('login'));
         $this->get('/login')->assertRedirect('/app/login');
+
+        $this->actingAs($user->fresh());
+        $this->get('/teams/'.$family->getKey())->assertRedirect('/app/family');
+        $this->get('/teams/create')->assertRedirect('/app/family');
+        $this->get('/user/profile')->assertRedirect('/app/profile');
+        $this->get('/team-invitations/1')->assertNotFound();
     }
 }

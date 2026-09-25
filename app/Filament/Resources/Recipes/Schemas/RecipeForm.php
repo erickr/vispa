@@ -117,9 +117,11 @@ class RecipeForm
                         ->relationship(
                             name: 'forkedFromRecipe',
                             titleAttribute: 'uuid',
-                            modifyQueryUsing: fn ($query, $record) => $record
-                                ? $query->where('id', '!=', $record->id)
-                                : $query,
+                            // Only recipes this user could open: the picker must not list other
+                            // families' recipes.
+                            modifyQueryUsing: fn ($query, $record) => $query
+                                ->accessibleTo(Auth::user())
+                                ->when($record, fn ($query) => $query->where('id', '!=', $record->id)),
                         )
                         ->searchable()
                         ->preload()
@@ -127,7 +129,11 @@ class RecipeForm
 
                     Select::make('forked_from_revision_id')
                         ->label(__('recipe.fields.forked_from_revision'))
-                        ->relationship('forkedFromRevision', 'uuid')
+                        ->relationship(
+                            name: 'forkedFromRevision',
+                            titleAttribute: 'uuid',
+                            modifyQueryUsing: fn ($query) => $query->whereHas('recipe', fn ($recipes) => $recipes->accessibleTo(Auth::user())),
+                        )
                         ->searchable()
                         ->preload()
                         ->nullable(),

@@ -6,15 +6,14 @@ use App\Actions\Families\CreatePersonalFamily;
 use App\Filament\Resources\RecipeRevisions\Pages\EditRecipeRevision;
 use App\Filament\Resources\Recipes\Pages\CreateRecipe;
 use App\Filament\Resources\Recipes\Pages\ListRecipes;
+use App\Mail\FamilyInvitation;
 use App\Models\Recipe;
 use App\Models\RecipeRevision;
 use App\Models\Team;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
-use Laravel\Jetstream\Mail\TeamInvitation as TeamInvitationMail;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -135,14 +134,13 @@ class FamilyRecipesTest extends TestCase
 
     public function test_an_invited_user_who_already_has_an_account_joins_and_switches_family(): void
     {
-        Mail::fake();
         $eric = $this->userWithFamily('Eric Krona');
         $anna = $this->userWithFamily('Anna Svensson');
         $annasOwn = $this->recipeBy($anna, 'Cinnamon buns');
         $erics = $this->recipeBy($eric, 'Pancakes');
 
         $invitation = $eric->currentTeam->teamInvitations()->create(['email' => $anna->email, 'role' => 'editor']);
-        $url = URL::signedRoute('team-invitations.accept', ['invitation' => $invitation]);
+        $url = URL::signedRoute('families.invitations.accept', ['invitation' => $invitation]);
 
         $this->get($url)->assertRedirect(route('login'));
 
@@ -169,7 +167,7 @@ class FamilyRecipesTest extends TestCase
         $invitation = $eric->currentTeam->teamInvitations()->create(['email' => $anna->email, 'role' => 'editor']);
 
         $this->actingAs($other)
-            ->get(URL::signedRoute('team-invitations.accept', ['invitation' => $invitation]))
+            ->get(URL::signedRoute('families.invitations.accept', ['invitation' => $invitation]))
             ->assertRedirect();
 
         $this->assertFalse($anna->fresh()->belongsToTeam($eric->currentTeam));
@@ -182,8 +180,9 @@ class FamilyRecipesTest extends TestCase
         $eric = $this->userWithFamily('Eric Krona');
         $invitation = $eric->currentTeam->teamInvitations()->create(['email' => 'new@example.com', 'role' => 'editor']);
 
-        (new TeamInvitationMail($invitation))
+        (new FamilyInvitation($invitation))
             ->assertSeeInHtml(route('filament.app.auth.register'))
-            ->assertSeeInHtml('The Krona family');
+            ->assertSeeInHtml('The Krona family')
+            ->assertSeeInHtml('/families/invitations/'.$invitation->getKey());
     }
 }
