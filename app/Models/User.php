@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\HasUuid;
 use App\Support\SupportedLocales;
 use Database\Factories\UserFactory;
+use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Contracts\Translation\HasLocalePreference;
@@ -54,6 +55,15 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
     public function isCatalogAdmin(): bool
     {
         return strcasecmp((string) $this->email, self::CATALOG_ADMIN_EMAIL) === 0;
+    }
+
+    /**
+     * Jetstream's family pages show an avatar per member. Profile photos are off, so they get
+     * the same generated avatar the panel shows.
+     */
+    public function getProfilePhotoUrlAttribute(): string
+    {
+        return Filament::getUserAvatarUrl($this);
     }
 
     public function recipes(): HasMany

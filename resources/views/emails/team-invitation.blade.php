@@ -1,23 +1,18 @@
+{{-- Jetstream's own copy points at Fortify's registration, which is off here; new members sign up in the panel. --}}
 @component('mail::message')
-{{ __('You have been invited to join the :team team!', ['team' => $invitation->team->name]) }}
+{{ __('family.invitation.intro', ['family' => $invitation->team->name, 'app' => config('app.name')]) }}
 
-@if (Laravel\Fortify\Features::enabled(Laravel\Fortify\Features::registration()))
-{{ __('If you do not have an account, you may create one by clicking the button below. After creating an account, you may click the invitation acceptance button in this email to accept the team invitation:') }}
+{{ __('family.invitation.no_account', ['app' => config('app.name')]) }}
 
-@component('mail::button', ['url' => route('register')])
-{{ __('Create Account') }}
+@component('mail::button', ['url' => route('filament.app.auth.register')])
+{{ __('family.invitation.create_account') }}
 @endcomponent
 
-{{ __('If you already have an account, you may accept this invitation by clicking the button below:') }}
-
-@else
-{{ __('You may accept this invitation by clicking the button below:') }}
-@endif
-
+{{ __('family.invitation.accept_intro') }}
 
 @component('mail::button', ['url' => $acceptUrl])
-{{ __('Accept Invitation') }}
+{{ __('family.invitation.accept') }}
 @endcomponent
 
-{{ __('If you did not expect to receive an invitation to this team, you may discard this email.') }}
+{{ __('family.invitation.unexpected') }}
 @endcomponent

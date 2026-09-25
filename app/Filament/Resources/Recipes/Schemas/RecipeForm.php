@@ -42,6 +42,18 @@ class RecipeForm
                         ->selectablePlaceholder(false)
                         ->native(false),
 
+                    // Only a question for someone in more than one family; everyone else's recipes
+                    // go to their one family (see Recipe::booted()).
+                    Select::make('team_id')
+                        ->label(__('family.fields.family'))
+                        ->helperText(__('family.fields.family_helper'))
+                        ->options(fn (?Recipe $record): array => self::familyOptions($record))
+                        ->default(fn (): ?int => Auth::user()?->current_team_id)
+                        ->in(fn (?Recipe $record): array => array_keys(self::familyOptions($record)))
+                        ->visible(fn (?Recipe $record): bool => count(self::familyOptions($record)) > 1)
+                        ->selectablePlaceholder(false)
+                        ->native(false),
+
                     Select::make('visibility')
                         ->label(__('recipe.fields.visibility'))
                         ->required()
@@ -244,5 +256,21 @@ class RecipeForm
                 ]),
             ])->columnSpanFull(),
         ]);
+    }
+
+    /**
+     * The user's families, plus the one the recipe is already in should they have left it.
+     *
+     * @return array<int, string>
+     */
+    private static function familyOptions(?Recipe $record): array
+    {
+        $options = Auth::user()?->allTeams()->pluck('name', 'id')->all() ?? [];
+
+        if ($record?->team && ! isset($options[$record->team_id])) {
+            $options[$record->team_id] = $record->team->name;
+        }
+
+        return $options;
     }
 }

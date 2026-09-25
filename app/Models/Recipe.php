@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasUuid;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,7 @@ class Recipe extends Model
     protected $fillable = [
         'uuid',
         'owner_user_id',
+        'team_id',
         'forked_from_recipe_id',
         'forked_from_revision_id',
         'default_locale',
@@ -28,6 +30,42 @@ class Recipe extends Model
      * @var Collection<int, RecipeRevision>|null
      */
     private ?Collection $sharedRevisions = null;
+
+    protected static function booted(): void
+    {
+        // A new recipe lands in the family its owner is currently in, however it was made —
+        // the create form, an import, a fork.
+        static::creating(function (Recipe $recipe): void {
+            if ($recipe->team_id === null && $recipe->owner_user_id !== null) {
+                $recipe->team_id = User::find($recipe->owner_user_id)?->currentTeam?->getKey();
+            }
+        });
+    }
+
+    /**
+     * What a user can open and edit: every recipe in any family they belong to, plus their
+     * own wherever they are — so leaving a family does not take away what you wrote.
+     */
+    public function scopeAccessibleTo(Builder $query, ?User $user): void
+    {
+        if (! $user) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $query->where(fn (Builder $query) => $query
+            ->whereIn($query->qualifyColumn('team_id'), $user->allTeams()->modelKeys())
+            ->orWhere($query->qualifyColumn('owner_user_id'), $user->getKey()));
+    }
+
+    /**
+     * The family this recipe belongs to.
+     */
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
 
     public function owner(): BelongsTo
     {

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\SetUserLocale;
 use Laravel\Jetstream\Features;
 use Laravel\Jetstream\Http\Middleware\AuthenticateSession;
 
@@ -29,7 +30,8 @@ return [
     |
     */
 
-    'middleware' => ['web'],
+    // SetUserLocale works before `auth` too: it only reads the session's user, if any.
+    'middleware' => ['web', SetUserLocale::class],
 
     'auth_session' => AuthenticateSession::class,
 
