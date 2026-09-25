@@ -44,6 +44,14 @@ The recipe domain follows a deliberate split. When touching recipes, keep the la
 
 `Ingredient` / `Unit` are catalog entities shared across recipes/locales. Only the catalog admin (`User::CATALOG_ADMIN_EMAIL`, see `isCatalogAdmin()`) edits units. Ingredients have a nullable `owner_user_id`: null = shared (created by the admin, visible to all), otherwise private to its creator (set by a `creating` hook). Use `Ingredient::visibleTo($user)` for listing/picking — it is a local scope, not a global one, so recipe lines still resolve any ingredient they reference. `Ingredient` keeps its `IngredientTranslation` sibling so a single catalog row can be displayed in multiple languages — this is the only translation table left, and it's deliberately scoped to the catalog, not to revision content.
 
+### Families (Jetstream teams)
+
+A family is a Jetstream team (`App\Models\Team`), installed with the Livewire stack and `Features::teams(['invitations' => true])`. **Filament owns authentication**: Fortify's routes are off (`Fortify::ignoreRoutes()`), `/login` and `/dashboard` redirect into the panel, and Sanctum, API tokens, 2FA and profile photos were left out. Jetstream contributes only its team pages (`/teams/{team}`, `/teams/create`, invitation acceptance), styled with the Tailwind 4 `app.css` (`@tailwindcss/forms` via `@plugin`) and linked from the panel's user menu ("My family").
+
+Every user owns one personal family named after their last name (`Team::familyNameFor()`, translated in `lang/*/family.php`). `App\Actions\Families\CreatePersonalFamily` creates it and is idempotent. It runs on registration (a listener in `AppServiceProvider` for both Laravel's and Filament's `Registered` events) and ran once for pre-existing users in the `2026_09_25_000050` migration. Recipes are not yet scoped to families.
+
+Do not rerun `php artisan jetstream:install`. It overwrites `User.php`, the factory, the seeder, `vite.config.js` and `app.css`, downgrades Tailwind to v3, and strips `dark:` classes from Filament views.
+
 ### UUIDs
 All domain models use `App\Models\Concerns\HasUuid`, which auto-populates `uuid` on `creating`. The `id` (bigint) is still the FK target internally; `uuid` is for external/public references. Migrations consistently add `$table->uuid('uuid')->unique()` alongside `$table->id()`.
 

@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Resources\Recipes\RecipeResource;
 use App\Http\Middleware\SetUserLocale;
+use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -22,6 +23,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AppPanelProvider extends PanelProvider
@@ -36,6 +38,16 @@ class AppPanelProvider extends PanelProvider
             ->login()
             ->registration()
             ->profile(EditProfile::class, isSimple: false)
+            // The family lives on Jetstream's team page, outside the panel: members, invitations
+            // and roles are all managed there.
+            ->userMenuItems([
+                Action::make('family')
+                    ->label(fn (): string => __('family.menu'))
+                    ->icon(Heroicon::OutlinedUserGroup)
+                    ->url(fn (): ?string => ($team = Auth::user()?->currentTeam)
+                        ? route('teams.show', $team)
+                        : null),
+            ])
             ->brandName('Vispa')
             ->brandLogo(fn () => view('filament.brand'))
             ->font('Karla')
