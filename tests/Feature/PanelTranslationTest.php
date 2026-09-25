@@ -103,6 +103,17 @@ class PanelTranslationTest extends TestCase
             ->assertDontSee('My recipes');
     }
 
+    public function test_the_dashboard_is_called_start_in_swedish(): void
+    {
+        $user = User::factory()->create(['locale' => 'sv']);
+
+        $this->actingAs($user)
+            ->get('/app')
+            ->assertOk()
+            ->assertSeeInOrder(['fi-header-heading', 'Start'], escape: false)
+            ->assertDontSee('Dashboard');
+    }
+
     public function test_a_real_request_renders_the_panel_in_english(): void
     {
         $user = User::factory()->create(['locale' => 'en']);

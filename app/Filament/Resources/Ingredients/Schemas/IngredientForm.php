@@ -60,7 +60,7 @@ class IngredientForm
 
     /**
      * A name must be unique among what the ingredient's owner can see: the shared catalog plus
-     * their own. Other users' private ingredients neither block the name nor leak through it.
+     * their household's. Other households' ingredients neither block the name nor leak through it.
      * Pass `$ignoreRecord` only where the form's record is the ingredient itself.
      */
     public static function uniqueName(TextInput $input, bool $ignoreRecord = false): TextInput
@@ -72,13 +72,13 @@ class IngredientForm
                 ignoreRecord: $ignoreRecord,
                 modifyRuleUsing: function (Unique $rule, ?Model $record): Unique {
                     $user = Auth::user();
-                    $ownerId = $record instanceof Ingredient
-                        ? $record->owner_user_id
-                        : ($user instanceof User && ! $user->isCatalogAdmin() ? $user->getKey() : null);
+                    $owner = $record instanceof Ingredient
+                        ? $record->owner
+                        : ($user instanceof User && ! $user->isCatalogAdmin() ? $user : null);
 
                     return $rule->where(fn (QueryBuilder $query) => $query
                         ->whereNull('owner_user_id')
-                        ->when($ownerId, fn (QueryBuilder $query) => $query->orWhere('owner_user_id', $ownerId)));
+                        ->when($owner, fn (QueryBuilder $query) => $query->orWhereIn('owner_user_id', $owner->householdMemberIds())));
                 },
             )
             ->validationMessages(['unique' => __('ingredient.validation.name_taken')]);

@@ -16,6 +16,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class RecipesTable
 {
@@ -27,6 +28,7 @@ class RecipesTable
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
                 'revisions' => fn ($q) => $q->withCount(['ingredients', 'instructionSteps']),
                 'revisions.images',
+                'household',
             ]))
             ->columns([
                 ImageColumn::make('cover')
@@ -68,6 +70,13 @@ class RecipesTable
                     ->color('info')
                     ->placeholder('—'),
 
+                // Everything listed is from one of the user's households; which one only matters
+                // to someone in several.
+                TextColumn::make('household.name')
+                    ->label(__('household.fields.household'))
+                    ->visible(fn (): bool => self::inSeveralHouseholds())
+                    ->placeholder('—'),
+
                 TextColumn::make('visibility')
                     ->label(__('recipe.fields.visibility'))
                     ->badge()
@@ -85,6 +94,10 @@ class RecipesTable
                 TextColumn::make('uuid')->label(__('recipe.fields.uuid'))->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('household_id')
+                    ->label(__('household.fields.household'))
+                    ->options(fn (): array => Auth::user()?->allTeams()->pluck('name', 'id')->all() ?? [])
+                    ->visible(fn (): bool => self::inSeveralHouseholds()),
                 SelectFilter::make('visibility')
                     ->label(__('recipe.fields.visibility'))
                     ->options([
@@ -139,6 +152,11 @@ class RecipesTable
             trans_choice('recipe.summary.steps', $steps),
             $photos ? trans_choice('recipe.summary.photos', $photos) : __('recipe.summary.no_photos'),
         ]));
+    }
+
+    private static function inSeveralHouseholds(): bool
+    {
+        return (Auth::user()?->allTeams()->count() ?? 0) > 1;
     }
 
     private static function viewUrl(Recipe $record): ?string

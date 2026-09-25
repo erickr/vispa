@@ -22,6 +22,7 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -145,12 +146,16 @@ class RecipeRevisionForm
 
                                     Select::make('ingredient_id')
                                         ->label(__('revision.fields.ingredient'))
-                                        // Shared ingredients plus the author's own; the current pick stays
-                                        // resolvable even if it's someone else's private one.
+                                        // Shared ingredients plus the editor's household's. The saved pick stays
+                                        // resolvable even if it's no longer visible — the saved one, not the
+                                        // submitted one, or any id typed in would pass as a valid option.
                                         ->relationship(
                                             name: 'ingredient',
                                             titleAttribute: 'canonical_name',
-                                            modifyQueryUsing: fn ($query, $state) => $query->visibleTo(Auth::user(), $state),
+                                            modifyQueryUsing: fn ($query, ?Model $record) => $query->visibleTo(
+                                                Auth::user(),
+                                                $record instanceof RecipeRevisionIngredient ? $record->ingredient_id : null,
+                                            ),
                                         )
                                         ->searchable()
                                         ->preload()

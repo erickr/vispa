@@ -49,6 +49,16 @@ return [
     ],
 
     'import' => [
+        'callout' => [
+            'heading' => 'Found a recipe online? Bring it home.',
+            'description' => 'Paste a link and Vispa turns the page into a recipe of your own: ingredients, steps, servings and the photo, ready to cook from and share with your household.',
+            'read_title' => 'Easier to read',
+            'read_body' => 'Just the ingredients and the steps — no ads, pop-ups or life story to scroll past while your hands are floury.',
+            'find_title' => 'Easier to find',
+            'find_body' => 'Everything you cook from in one place, searchable and shared with your household, instead of lost in bookmarks and open tabs.',
+            'notes_title' => 'Room for your adjustments',
+            'notes_body' => 'Note what you changed — less sugar, a longer bake, a swap that worked — and keep each version, with the original still there.',
+        ],
         'action' => 'Import from link',
         'modal_heading' => 'Import a recipe from a link',
         'modal_description' => 'Vispa reads the page and fills in a draft: ingredients, steps, servings and the photo. Check it over before you publish.',

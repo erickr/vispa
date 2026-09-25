@@ -47,6 +47,16 @@ return [
     ],
 
     'import' => [
+        'callout' => [
+            'heading' => 'Hittat ett recept på nätet? Ta hem det.',
+            'description' => 'Klistra in en länk så gör Vispa om sidan till ett eget recept: ingredienser, steg, portioner och bild, redo att laga mat efter och dela med ditt hushåll.',
+            'read_title' => 'Lättare att läsa',
+            'read_body' => 'Bara ingredienserna och stegen – inga annonser, popup-rutor eller livsberättelser att scrolla förbi med mjöl på händerna.',
+            'find_title' => 'Lättare att hitta',
+            'find_body' => 'Allt du lagar mat efter på ett ställe, sökbart och delat med ditt hushåll, i stället för bortglömt bland bokmärken och öppna flikar.',
+            'notes_title' => 'Plats för dina justeringar',
+            'notes_body' => 'Anteckna vad du ändrade – mindre socker, längre tid i ugnen, ett byte som funkade – och spara varje version, med originalet kvar.',
+        ],
         'action' => 'Importera från länk',
         'modal_heading' => 'Importera ett recept från en länk',
         'modal_description' => 'Vispa läser sidan och fyller i ett utkast: ingredienser, steg, portioner och bilden. Gå igenom det innan du publicerar.',

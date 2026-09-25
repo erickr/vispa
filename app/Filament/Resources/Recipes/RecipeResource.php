@@ -59,7 +59,7 @@ class RecipeResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('owner_user_id', Auth::id());
+        return parent::getEloquentQuery()->accessibleTo(Auth::user());
     }
 
     public static function getRelations(): array

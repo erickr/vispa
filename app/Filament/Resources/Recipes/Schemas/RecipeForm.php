@@ -42,6 +42,18 @@ class RecipeForm
                         ->selectablePlaceholder(false)
                         ->native(false),
 
+                    // Only a question for someone in more than one household; everyone else's recipes
+                    // go to their one household (see Recipe::booted()).
+                    Select::make('household_id')
+                        ->label(__('household.fields.household'))
+                        ->helperText(__('household.fields.household_helper'))
+                        ->options(fn (?Recipe $record): array => self::householdOptions($record))
+                        ->default(fn (): ?int => Auth::user()?->current_household_id)
+                        ->in(fn (?Recipe $record): array => array_keys(self::householdOptions($record)))
+                        ->visible(fn (?Recipe $record): bool => count(self::householdOptions($record)) > 1)
+                        ->selectablePlaceholder(false)
+                        ->native(false),
+
                     Select::make('visibility')
                         ->label(__('recipe.fields.visibility'))
                         ->required()
@@ -105,9 +117,11 @@ class RecipeForm
                         ->relationship(
                             name: 'forkedFromRecipe',
                             titleAttribute: 'uuid',
-                            modifyQueryUsing: fn ($query, $record) => $record
-                                ? $query->where('id', '!=', $record->id)
-                                : $query,
+                            // Only recipes this user could open: the picker must not list other
+                            // households' recipes.
+                            modifyQueryUsing: fn ($query, $record) => $query
+                                ->accessibleTo(Auth::user())
+                                ->when($record, fn ($query) => $query->where('id', '!=', $record->id)),
                         )
                         ->searchable()
                         ->preload()
@@ -115,7 +129,11 @@ class RecipeForm
 
                     Select::make('forked_from_revision_id')
                         ->label(__('recipe.fields.forked_from_revision'))
-                        ->relationship('forkedFromRevision', 'uuid')
+                        ->relationship(
+                            name: 'forkedFromRevision',
+                            titleAttribute: 'uuid',
+                            modifyQueryUsing: fn ($query) => $query->whereHas('recipe', fn ($recipes) => $recipes->accessibleTo(Auth::user())),
+                        )
                         ->searchable()
                         ->preload()
                         ->nullable(),
@@ -244,5 +262,21 @@ class RecipeForm
                 ]),
             ])->columnSpanFull(),
         ]);
+    }
+
+    /**
+     * The user's households, plus the one the recipe is already in should they have left it.
+     *
+     * @return array<int, string>
+     */
+    private static function householdOptions(?Recipe $record): array
+    {
+        $options = Auth::user()?->allTeams()->pluck('name', 'id')->all() ?? [];
+
+        if ($record?->household && ! isset($options[$record->household_id])) {
+            $options[$record->household_id] = $record->household->name;
+        }
+
+        return $options;
     }
 }

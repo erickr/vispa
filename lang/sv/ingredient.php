@@ -22,7 +22,8 @@ return [
 
     'visibility' => [
         'shared' => 'Alla',
-        'private' => 'Bara dig',
+        'private' => 'Du och ditt hushåll',
+        'household' => 'Ditt hushåll',
     ],
 
     'validation' => [
