@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Families\CreatePersonalFamily;
 use App\Filament\Resources\Ingredients\Pages\CreateIngredient;
 use App\Filament\Resources\Ingredients\Pages\EditIngredient;
 use App\Filament\Resources\Ingredients\Pages\ListIngredients;
@@ -13,8 +14,8 @@ use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * Anyone can add ingredients, but what they add is theirs alone. The catalog admin's
- * ingredients are shared with everyone and only the admin edits them.
+ * Anyone can add ingredients, and what they add belongs to them and their family. The catalog
+ * admin's ingredients are shared with everyone and only the admin edits them.
  */
 class IngredientAccessTest extends TestCase
 {
@@ -107,5 +108,49 @@ class IngredientAccessTest extends TestCase
         // Alice's private ingredient doesn't block Bob from making his own.
         $this->createAs($this->bob, 'gochujang');
         $this->assertSame(2, Ingredient::where('canonical_name', 'gochujang')->count());
+    }
+
+    /** Carol joins Alice's family; Bob stays outside it. */
+    private function carolInAlicesFamily(): User
+    {
+        $family = app(CreatePersonalFamily::class)->handle($this->alice);
+        $carol = User::factory()->create();
+        app(CreatePersonalFamily::class)->handle($carol);
+        $family->users()->attach($carol, ['role' => 'editor']);
+
+        return $carol->fresh();
+    }
+
+    public function test_family_members_see_and_edit_each_others_ingredients(): void
+    {
+        $carol = $this->carolInAlicesFamily();
+        $gochujang = $this->createAs($this->alice, 'gochujang');
+
+        $this->actingAs($carol);
+        Livewire::test(ListIngredients::class)
+            ->assertCanSeeTableRecords([$gochujang])
+            ->assertTableActionVisible('edit', $gochujang);
+        Livewire::test(EditIngredient::class, ['record' => $gochujang->getRouteKey()])
+            ->fillForm(['canonical_name' => 'gochujang paste'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+        $this->assertSame('gochujang paste', $gochujang->fresh()->canonical_name);
+        $this->assertTrue(Ingredient::visibleTo($carol)->whereKey($gochujang)->exists());
+
+        $this->actingAs($this->bob);
+        Livewire::test(ListIngredients::class)->assertCanNotSeeTableRecords([$gochujang]);
+        $this->get(EditIngredient::getUrl(['record' => $gochujang]))->assertNotFound();
+    }
+
+    public function test_names_are_unique_within_the_family(): void
+    {
+        $carol = $this->carolInAlicesFamily();
+        $this->createAs($this->alice, 'gochujang');
+
+        $this->actingAs($carol);
+        Livewire::test(CreateIngredient::class)
+            ->fillForm(['canonical_name' => 'gochujang'])
+            ->call('create')
+            ->assertHasFormErrors(['canonical_name' => 'unique']);
     }
 }
