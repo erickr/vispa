@@ -2,8 +2,8 @@
 
 namespace App\Actions\Jetstream;
 
-use App\Mail\FamilyInvitation;
-use App\Models\Team;
+use App\Mail\HouseholdInvitationMail;
+use App\Models\Household;
 use App\Models\User;
 use Closure;
 use Illuminate\Database\Query\Builder;
@@ -19,51 +19,51 @@ use Laravel\Jetstream\Rules\Role;
 class InviteTeamMember implements InvitesTeamMembers
 {
     /**
-     * Invite a new team member to the given team.
+     * Invite a new household member to the given household.
      */
-    public function invite(User $user, Team $team, string $email, ?string $role = null): void
+    public function invite(User $user, Household $household, string $email, ?string $role = null): void
     {
-        Gate::forUser($user)->authorize('addTeamMember', $team);
+        Gate::forUser($user)->authorize('addTeamMember', $household);
 
-        $this->validate($team, $email, $role);
+        $this->validate($household, $email, $role);
 
-        InvitingTeamMember::dispatch($team, $email, $role);
+        InvitingTeamMember::dispatch($household, $email, $role);
 
-        $invitation = $team->teamInvitations()->create([
+        $invitation = $household->teamInvitations()->create([
             'email' => $email,
             'role' => $role,
         ]);
 
-        Mail::to($email)->send(new FamilyInvitation($invitation));
+        Mail::to($email)->send(new HouseholdInvitationMail($invitation));
     }
 
     /**
      * Validate the invite member operation.
      */
-    protected function validate(Team $team, string $email, ?string $role): void
+    protected function validate(Household $household, string $email, ?string $role): void
     {
         Validator::make([
             'email' => $email,
             'role' => $role,
-        ], $this->rules($team), [
-            'email.unique' => __('This user has already been invited to the team.'),
+        ], $this->rules($household), [
+            'email.unique' => __('household.validation.already_invited'),
         ])->after(
-            $this->ensureUserIsNotAlreadyOnTeam($team, $email)
+            $this->ensureUserIsNotAlreadyOnTeam($household, $email)
         )->validateWithBag('addTeamMember');
     }
 
     /**
-     * Get the validation rules for inviting a team member.
+     * Get the validation rules for inviting a household member.
      *
      * @return array<string, \Illuminate\Contracts\Validation\Rule|array|string>
      */
-    protected function rules(Team $team): array
+    protected function rules(Household $household): array
     {
         return array_filter([
             'email' => [
                 'required', 'email',
-                Rule::unique(Jetstream::teamInvitationModel())->where(function (Builder $query) use ($team) {
-                    $query->where('team_id', $team->id);
+                Rule::unique(Jetstream::teamInvitationModel())->where(function (Builder $query) use ($household) {
+                    $query->where('household_id', $household->id);
                 }),
             ],
             'role' => Jetstream::hasRoles()
@@ -73,15 +73,15 @@ class InviteTeamMember implements InvitesTeamMembers
     }
 
     /**
-     * Ensure that the user is not already on the team.
+     * Ensure that the user is not already on the household.
      */
-    protected function ensureUserIsNotAlreadyOnTeam(Team $team, string $email): Closure
+    protected function ensureUserIsNotAlreadyOnTeam(Household $household, string $email): Closure
     {
-        return function ($validator) use ($team, $email) {
+        return function ($validator) use ($household, $email) {
             $validator->errors()->addIf(
-                $team->hasUserWithEmail($email),
+                $household->hasUserWithEmail($email),
                 'email',
-                __('This user already belongs to the team.')
+                __('household.validation.already_member')
             );
         };
     }

@@ -39,7 +39,7 @@ class RecipeRevisionResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        // Revisions of any recipe in the user's families, not only their own.
+        // Revisions of any recipe in the user's households, not only their own.
         return parent::getEloquentQuery()
             ->whereHas('recipe', fn (Builder $query) => $query->accessibleTo(Auth::user()));
     }

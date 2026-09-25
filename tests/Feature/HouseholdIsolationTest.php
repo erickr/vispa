@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Actions\Families\CreatePersonalFamily;
-use App\Filament\Pages\Family;
+use App\Actions\Households\CreatePersonalHousehold;
+use App\Filament\Pages\MyHousehold;
 use App\Filament\Resources\Ingredients\Pages\EditIngredient;
 use App\Filament\Resources\Ingredients\Pages\ListIngredients;
 use App\Filament\Resources\RecipeRevisions\Pages\EditRecipeRevision;
@@ -25,11 +25,11 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
- * Two families, the Kronas (Eric and Anna) and the Does (Jane). Nothing one family owns — a
- * recipe, a revision, a private ingredient, the family page — is reachable from the other,
+ * Two households, the Kronas (Eric and Anna) and the Does (Jane). Nothing one household owns — a
+ * recipe, a revision, a private ingredient, the household page — is reachable from the other,
  * by listing, by URL, through a picker or by submitting an id the form never offered.
  */
-class FamilyIsolationTest extends TestCase
+class HouseholdIsolationTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -53,32 +53,32 @@ class FamilyIsolationTest extends TestCase
 
         Filament::setCurrentPanel('app');
 
-        $this->eric = $this->userWithFamily('Eric Krona');
-        $this->anna = $this->userWithFamily('Anna Krona');
+        $this->eric = $this->userWithHousehold('Eric Krona');
+        $this->anna = $this->userWithHousehold('Anna Krona');
         $this->eric->currentTeam->users()->attach($this->anna);
         $this->anna = $this->anna->fresh();
-        $this->jane = $this->userWithFamily('Jane Doe');
+        $this->jane = $this->userWithHousehold('Jane Doe');
 
-        $this->kronaRecipe = $this->recipeBy($this->anna, 'Krona pancakes', $this->eric->current_team_id);
+        $this->kronaRecipe = $this->recipeBy($this->anna, 'Krona pancakes', $this->eric->current_household_id);
         $this->doeRecipe = $this->recipeBy($this->jane, 'Doe waffles');
 
         $this->kronaIngredient = $this->ingredientBy($this->anna, 'krona spice mix');
         $this->doeIngredient = $this->ingredientBy($this->jane, 'doe spice mix');
     }
 
-    private function userWithFamily(string $name): User
+    private function userWithHousehold(string $name): User
     {
         $user = User::factory()->create(['name' => $name]);
-        app(CreatePersonalFamily::class)->handle($user);
+        app(CreatePersonalHousehold::class)->handle($user);
 
         return $user->fresh();
     }
 
-    private function recipeBy(User $user, string $title, ?int $familyId = null): Recipe
+    private function recipeBy(User $user, string $title, ?int $householdId = null): Recipe
     {
         $recipe = Recipe::create([
             'owner_user_id' => $user->getKey(),
-            'team_id' => $familyId ?? $user->current_team_id,
+            'household_id' => $householdId ?? $user->current_household_id,
             'default_locale' => 'en',
             'visibility' => 'private',
         ]);
@@ -110,7 +110,7 @@ class FamilyIsolationTest extends TestCase
         return ['a Doe looking at the Kronas' => ['jane'], 'a Krona looking at the Does' => ['eric']];
     }
 
-    /** The other family's recipe and ingredient, from the point of view of $who. */
+    /** The other household's recipe and ingredient, from the point of view of $who. */
     private function theirs(string $who): array
     {
         return $who === 'jane'
@@ -119,7 +119,7 @@ class FamilyIsolationTest extends TestCase
     }
 
     #[DataProvider('outsiders')]
-    public function test_the_other_familys_recipes_are_not_listed(string $who): void
+    public function test_the_other_households_recipes_are_not_listed(string $who): void
     {
         [$user, $recipe] = $this->theirs($who);
         $own = $who === 'jane' ? $this->doeRecipe : $this->kronaRecipe;
@@ -129,7 +129,7 @@ class FamilyIsolationTest extends TestCase
         Livewire::test(ListRecipes::class)
             ->assertCanSeeTableRecords([$own])
             ->assertCanNotSeeTableRecords([$recipe])
-            // Search reaches through to revision titles; it must not reach across families.
+            // Search reaches through to revision titles; it must not reach across households.
             ->searchTable($who === 'jane' ? 'Krona' : 'Doe')
             ->assertCanNotSeeTableRecords([$recipe]);
 
@@ -137,7 +137,7 @@ class FamilyIsolationTest extends TestCase
     }
 
     #[DataProvider('outsiders')]
-    public function test_the_other_familys_recipe_pages_are_not_found(string $who): void
+    public function test_the_other_households_recipe_pages_are_not_found(string $who): void
     {
         [$user, $recipe] = $this->theirs($who);
         $revision = $this->revisionOf($recipe);
@@ -150,7 +150,7 @@ class FamilyIsolationTest extends TestCase
     }
 
     #[DataProvider('outsiders')]
-    public function test_the_other_familys_recipe_cannot_be_edited_directly(string $who): void
+    public function test_the_other_households_recipe_cannot_be_edited_directly(string $who): void
     {
         [$user, $recipe] = $this->theirs($who);
         $revision = $this->revisionOf($recipe);
@@ -169,19 +169,19 @@ class FamilyIsolationTest extends TestCase
         $this->assertSame('private', $recipe->fresh()->visibility);
     }
 
-    public function test_a_recipe_cannot_be_created_in_another_family(): void
+    public function test_a_recipe_cannot_be_created_in_another_household(): void
     {
         $this->actingAs($this->jane);
 
         Livewire::test(CreateRecipe::class)
-            ->fillForm(['team_id' => $this->eric->current_team_id, 'default_locale' => 'en', 'visibility' => 'private', 'title' => 'Planted'])
+            ->fillForm(['household_id' => $this->eric->current_household_id, 'default_locale' => 'en', 'visibility' => 'private', 'title' => 'Planted'])
             ->call('create');
 
-        $this->assertFalse(Recipe::where('team_id', $this->eric->current_team_id)->where('owner_user_id', $this->jane->id)->exists());
+        $this->assertFalse(Recipe::where('household_id', $this->eric->current_household_id)->where('owner_user_id', $this->jane->id)->exists());
     }
 
     #[DataProvider('outsiders')]
-    public function test_the_fork_pickers_do_not_offer_the_other_familys_recipes(string $who): void
+    public function test_the_fork_pickers_do_not_offer_the_other_households_recipes(string $who): void
     {
         [$user, $recipe] = $this->theirs($who);
         $revision = $this->revisionOf($recipe);
@@ -202,7 +202,7 @@ class FamilyIsolationTest extends TestCase
     }
 
     #[DataProvider('outsiders')]
-    public function test_the_other_familys_ingredients_are_not_listed_or_editable(string $who): void
+    public function test_the_other_households_ingredients_are_not_listed_or_editable(string $who): void
     {
         [$user, , $ingredient] = $this->theirs($who);
 
@@ -216,7 +216,7 @@ class FamilyIsolationTest extends TestCase
     }
 
     #[DataProvider('outsiders')]
-    public function test_the_ingredient_picker_neither_offers_nor_accepts_the_other_familys_ingredients(string $who): void
+    public function test_the_ingredient_picker_neither_offers_nor_accepts_the_other_households_ingredients(string $who): void
     {
         [$user, , $ingredient] = $this->theirs($who);
         $ownRecipe = $who === 'jane' ? $this->doeRecipe : $this->kronaRecipe;
@@ -238,7 +238,7 @@ class FamilyIsolationTest extends TestCase
         $this->assertFalse($revision->ingredients()->where('ingredient_id', $ingredient->getKey())->exists());
     }
 
-    public function test_family_members_do_share_with_each_other(): void
+    public function test_household_members_do_share_with_each_other(): void
     {
         // The other side of the fence: within the Kronas everything is shared.
         $this->actingAs($this->eric);
@@ -248,46 +248,46 @@ class FamilyIsolationTest extends TestCase
         $this->get(RecipeRevisionResource::getUrl('edit', ['record' => $this->revisionOf($this->kronaRecipe)]))->assertOk();
     }
 
-    public function test_the_family_page_only_shows_your_own_family(): void
+    public function test_the_household_page_only_shows_your_own_household(): void
     {
         $this->actingAs($this->jane);
 
-        Livewire::test(Family::class)
-            ->assertSee('The Doe family')
-            ->assertDontSee('The Krona family')
+        Livewire::test(MyHousehold::class)
+            ->assertSee('The Doe household')
+            ->assertDontSee('The Krona household')
             ->assertDontSee($this->eric->email)
             ->assertDontSee($this->anna->email);
     }
 
-    public function test_you_cannot_switch_into_another_family(): void
+    public function test_you_cannot_switch_into_another_household(): void
     {
         $this->actingAs($this->jane);
 
         $this->assertFalse($this->jane->switchTeam($this->eric->currentTeam));
 
-        // Jane has one family, so the switch action isn't offered; submitting it anyway fails.
-        Livewire::test(Family::class)->assertActionHidden('switch');
-        $this->assertSame($this->jane->personalTeam()->id, $this->jane->fresh()->current_team_id);
+        // Jane has one household, so the switch action isn't offered; submitting it anyway fails.
+        Livewire::test(MyHousehold::class)->assertActionHidden('switch');
+        $this->assertSame($this->jane->personalTeam()->id, $this->jane->fresh()->current_household_id);
     }
 
     public function test_an_outsider_cannot_remove_members_or_cancel_invitations(): void
     {
         $invitation = $this->eric->currentTeam->teamInvitations()->create(['email' => 'new@example.com']);
 
-        // Jane's page is about her own family: Anna is not among its members, so there is
+        // Jane's page is about her own household: Anna is not among its members, so there is
         // nobody to remove, and the Kronas' invitation is not hers to cancel.
         $this->actingAs($this->jane);
         $this->assertThrows(
-            fn () => Livewire::test(Family::class)->callAction('removeMember', arguments: ['user' => $this->anna->id]),
+            fn () => Livewire::test(MyHousehold::class)->callAction('removeMember', arguments: ['user' => $this->anna->id]),
             ModelNotFoundException::class,
         );
-        Livewire::test(Family::class)->callAction('cancelInvitation', arguments: ['invitation' => $invitation->id]);
+        Livewire::test(MyHousehold::class)->callAction('cancelInvitation', arguments: ['invitation' => $invitation->id]);
 
         $this->assertTrue($this->anna->fresh()->belongsToTeam($this->eric->currentTeam));
         $this->assertModelExists($invitation);
     }
 
-    public function test_leaving_a_family_takes_its_recipes_and_ingredients_away(): void
+    public function test_leaving_a_household_takes_its_recipes_and_ingredients_away(): void
     {
         $ericsRecipe = $this->recipeBy($this->eric, 'Eric stew');
         $ericsIngredient = $this->ingredientBy($this->eric, 'eric spice');

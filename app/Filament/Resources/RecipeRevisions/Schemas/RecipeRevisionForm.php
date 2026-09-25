@@ -146,7 +146,7 @@ class RecipeRevisionForm
 
                                     Select::make('ingredient_id')
                                         ->label(__('revision.fields.ingredient'))
-                                        // Shared ingredients plus the editor's family's. The saved pick stays
+                                        // Shared ingredients plus the editor's household's. The saved pick stays
                                         // resolvable even if it's no longer visible — the saved one, not the
                                         // submitted one, or any id typed in would pass as a valid option.
                                         ->relationship(

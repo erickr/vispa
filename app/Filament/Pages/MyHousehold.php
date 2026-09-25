@@ -2,8 +2,8 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\Team;
-use App\Models\TeamInvitation;
+use App\Models\Household;
+use App\Models\HouseholdInvitation;
 use App\Models\User;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -17,8 +17,8 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
-use Laravel\Jetstream\Actions\ValidateTeamDeletion;
 use Laravel\Jetstream\Contracts\CreatesTeams;
 use Laravel\Jetstream\Contracts\DeletesTeams;
 use Laravel\Jetstream\Contracts\InvitesTeamMembers;
@@ -26,48 +26,48 @@ use Laravel\Jetstream\Contracts\RemovesTeamMembers;
 use Laravel\Jetstream\Contracts\UpdatesTeamNames;
 
 /**
- * The user's current family: who is in it, who has been invited, and — for the owner — inviting,
+ * The user's current household: who is in it, who has been invited, and — for the owner — inviting,
  * removing and renaming. Jetstream still does the work (its actions and TeamPolicy); this page
  * is only its face inside the panel, in place of Jetstream's own Livewire views.
  */
-class Family extends Page
+class MyHousehold extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
     protected static ?int $navigationSort = 5;
 
-    protected static ?string $slug = 'family';
+    protected static ?string $slug = 'household';
 
-    protected string $view = 'filament.pages.family';
+    protected string $view = 'filament.pages.my-household';
 
     public static function getNavigationLabel(): string
     {
-        return __('family.menu');
+        return __('household.menu');
     }
 
     public function mount(): void
     {
-        abort_unless($this->family() !== null, 404);
+        abort_unless($this->household() !== null, 404);
     }
 
     public function getTitle(): string|Htmlable
     {
-        return $this->family()->name;
+        return $this->household()->name;
     }
 
     public function getSubheading(): ?string
     {
-        return __('family.page.subheading');
+        return __('household.page.subheading');
     }
 
-    public function family(): ?Team
+    public function household(): ?Household
     {
         return $this->user()->currentTeam;
     }
 
     public function isOwner(): bool
     {
-        return $this->user()->ownsTeam($this->family());
+        return $this->user()->ownsTeam($this->household());
     }
 
     /**
@@ -77,10 +77,10 @@ class Family extends Page
      */
     public function members(): Collection
     {
-        $family = $this->family();
+        $household = $this->household();
 
-        return $family->allUsers()
-            ->sortBy(fn (User $user): string => ($user->is($family->owner) ? '0' : '1').mb_strtolower($user->name))
+        return $household->allUsers()
+            ->sortBy(fn (User $user): string => ($user->is($household->owner) ? '0' : '1').mb_strtolower($user->name))
             ->values();
     }
 
@@ -89,7 +89,7 @@ class Family extends Page
      */
     public function invitations(): Collection
     {
-        return $this->family()->teamInvitations()->orderBy('email')->get();
+        return $this->household()->teamInvitations()->orderBy('email')->get();
     }
 
     protected function getHeaderActions(): array
@@ -109,54 +109,54 @@ class Family extends Page
     public function inviteAction(): Action
     {
         return Action::make('invite')
-            ->label(__('family.actions.invite'))
+            ->label(__('household.actions.invite'))
             ->icon(Heroicon::OutlinedUserPlus)
             ->visible(fn (): bool => $this->isOwner())
-            ->modalDescription(__('family.actions.invite_description'))
+            ->modalDescription(__('household.actions.invite_description'))
             ->schema([
                 TextInput::make('email')
-                    ->label(__('family.fields.email'))
+                    ->label(__('household.fields.email'))
                     ->email()
                     ->required()
                     ->rules([
                         fn () => function (string $attribute, mixed $value, \Closure $fail): void {
-                            if ($this->family()->hasUserWithEmail((string) $value)) {
-                                $fail(__('family.validation.already_member'));
-                            } elseif ($this->family()->teamInvitations()->where('email', $value)->exists()) {
-                                $fail(__('family.validation.already_invited'));
+                            if ($this->household()->hasUserWithEmail((string) $value)) {
+                                $fail(__('household.validation.already_member'));
+                            } elseif ($this->household()->teamInvitations()->where('email', $value)->exists()) {
+                                $fail(__('household.validation.already_invited'));
                             }
                         },
                     ]),
             ])
-            ->modalSubmitActionLabel(__('family.actions.send_invitation'))
+            ->modalSubmitActionLabel(__('household.actions.send_invitation'))
             ->action(function (array $data): void {
                 $this->jetstream(fn () => app(InvitesTeamMembers::class)
-                    ->invite($this->user(), $this->family(), $data['email']));
+                    ->invite($this->user(), $this->household(), $data['email']));
 
-                Notification::make()->title(__('family.notifications.invited', ['email' => $data['email']]))->success()->send();
+                Notification::make()->title(__('household.notifications.invited', ['email' => $data['email']]))->success()->send();
             });
     }
 
     public function switchAction(): Action
     {
         return Action::make('switch')
-            ->label(__('family.actions.switch'))
+            ->label(__('household.actions.switch'))
             ->icon(Heroicon::OutlinedArrowsRightLeft)
             ->color('gray')
             ->visible(fn (): bool => $this->user()->allTeams()->count() > 1)
             ->schema([
-                Select::make('family')
-                    ->label(__('family.fields.family'))
+                Select::make('household')
+                    ->label(__('household.fields.household'))
                     ->options(fn (): array => $this->user()->allTeams()->pluck('name', 'id')->all())
-                    ->default(fn (): ?int => $this->family()?->getKey())
+                    ->default(fn (): ?int => $this->household()?->getKey())
                     ->selectablePlaceholder(false)
                     ->native(false)
                     ->required(),
             ])
             ->action(function (array $data): void {
-                $family = $this->user()->allTeams()->firstWhere('id', (int) $data['family']);
+                $household = $this->user()->allTeams()->firstWhere('id', (int) $data['household']);
 
-                abort_unless($family && $this->user()->switchTeam($family), 403);
+                abort_unless($household && $this->user()->switchTeam($household), 403);
 
                 $this->redirect(static::getUrl());
             });
@@ -165,16 +165,16 @@ class Family extends Page
     public function renameAction(): Action
     {
         return Action::make('rename')
-            ->label(__('family.actions.rename'))
+            ->label(__('household.actions.rename'))
             ->icon(Heroicon::OutlinedPencilSquare)
             ->visible(fn (): bool => $this->isOwner())
-            ->fillForm(fn (): array => ['name' => $this->family()->name])
+            ->fillForm(fn (): array => ['name' => $this->household()->name])
             ->schema([
-                TextInput::make('name')->label(__('family.fields.name'))->required()->maxLength(255),
+                TextInput::make('name')->label(__('household.fields.name'))->required()->maxLength(255),
             ])
             ->action(function (array $data): void {
                 $this->jetstream(fn () => app(UpdatesTeamNames::class)
-                    ->update($this->user(), $this->family(), ['name' => $data['name']]));
+                    ->update($this->user(), $this->household(), ['name' => $data['name']]));
 
                 $this->redirect(static::getUrl());
             });
@@ -183,14 +183,14 @@ class Family extends Page
     public function createAction(): Action
     {
         return Action::make('create')
-            ->label(__('family.actions.create'))
+            ->label(__('household.actions.create'))
             ->icon(Heroicon::OutlinedPlusCircle)
-            ->modalDescription(__('family.actions.create_description'))
+            ->modalDescription(__('household.actions.create_description'))
             ->schema([
-                TextInput::make('name')->label(__('family.fields.name'))->required()->maxLength(255),
+                TextInput::make('name')->label(__('household.fields.name'))->required()->maxLength(255),
             ])
             ->action(function (array $data): void {
-                // Jetstream's CreateTeam switches the user into the new family.
+                // Jetstream's CreateTeam switches the user into the new household.
                 $this->jetstream(fn () => app(CreatesTeams::class)->create($this->user(), ['name' => $data['name']]));
 
                 $this->redirect(static::getUrl());
@@ -200,19 +200,19 @@ class Family extends Page
     public function leaveAction(): Action
     {
         return Action::make('leave')
-            ->label(__('family.actions.leave'))
+            ->label(__('household.actions.leave'))
             ->icon(Heroicon::OutlinedArrowLeftStartOnRectangle)
             ->color('danger')
             ->visible(fn (): bool => ! $this->isOwner())
             ->requiresConfirmation()
-            ->modalDescription(__('family.actions.leave_description'))
+            ->modalDescription(__('household.actions.leave_description'))
             ->action(function (): void {
-                $family = $this->family();
+                $household = $this->household();
 
-                $this->jetstream(fn () => app(RemovesTeamMembers::class)->remove($this->user(), $family, $this->user()));
-                $this->backToOwnFamily();
+                $this->jetstream(fn () => app(RemovesTeamMembers::class)->remove($this->user(), $household, $this->user()));
+                $this->backToOwnHousehold();
 
-                Notification::make()->title(__('family.notifications.left', ['family' => $family->name]))->success()->send();
+                Notification::make()->title(__('household.notifications.left', ['household' => $household->name]))->success()->send();
                 $this->redirect(static::getUrl());
             });
     }
@@ -220,22 +220,24 @@ class Family extends Page
     public function deleteAction(): Action
     {
         return Action::make('delete')
-            ->label(__('family.actions.delete'))
+            ->label(__('household.actions.delete'))
             ->icon(Heroicon::OutlinedTrash)
             ->color('danger')
-            ->visible(fn (): bool => $this->isOwner() && ! $this->family()->personal_team)
+            ->visible(fn (): bool => $this->isOwner() && ! $this->household()->personal_household)
             ->requiresConfirmation()
-            ->modalDescription(__('family.actions.delete_description'))
+            ->modalDescription(__('household.actions.delete_description'))
             ->action(function (): void {
-                $family = $this->family();
+                $household = $this->household();
 
-                $this->jetstream(function () use ($family): void {
-                    app(ValidateTeamDeletion::class)->validate($this->user(), $family);
-                    app(DeletesTeams::class)->delete($family);
-                });
-                $this->backToOwnFamily();
+                // Not Jetstream's ValidateTeamDeletion: it reads `personal_team`, which is
+                // `personal_household` here.
+                Gate::forUser($this->user())->authorize('delete', $household);
+                abort_if($household->personal_household, 403);
 
-                Notification::make()->title(__('family.notifications.deleted', ['family' => $family->name]))->success()->send();
+                app(DeletesTeams::class)->delete($household);
+                $this->backToOwnHousehold();
+
+                Notification::make()->title(__('household.notifications.deleted', ['household' => $household->name]))->success()->send();
                 $this->redirect(static::getUrl());
             });
     }
@@ -243,32 +245,32 @@ class Family extends Page
     public function removeMemberAction(): Action
     {
         return Action::make('removeMember')
-            ->label(__('family.actions.remove'))
+            ->label(__('household.actions.remove'))
             ->icon(Heroicon::OutlinedUserMinus)
             ->color('danger')
             ->link()
             ->visible(fn (): bool => $this->isOwner())
             ->requiresConfirmation()
-            ->modalHeading(fn (array $arguments): string => __('family.actions.remove_heading', [
-                'name' => $this->family()->users()->find($arguments['user'] ?? null)?->name,
+            ->modalHeading(fn (array $arguments): string => __('household.actions.remove_heading', [
+                'name' => $this->household()->users()->find($arguments['user'] ?? null)?->name,
             ]))
-            ->modalDescription(__('family.actions.remove_description'))
+            ->modalDescription(__('household.actions.remove_description'))
             ->action(function (array $arguments): void {
-                $member = $this->family()->users()->findOrFail($arguments['user'] ?? null);
+                $member = $this->household()->users()->findOrFail($arguments['user'] ?? null);
 
-                $this->jetstream(fn () => app(RemovesTeamMembers::class)->remove($this->user(), $this->family(), $member));
+                $this->jetstream(fn () => app(RemovesTeamMembers::class)->remove($this->user(), $this->household(), $member));
             });
     }
 
     public function cancelInvitationAction(): Action
     {
         return Action::make('cancelInvitation')
-            ->label(__('family.actions.cancel_invitation'))
+            ->label(__('household.actions.cancel_invitation'))
             ->color('gray')
             ->link()
             ->visible(fn (): bool => $this->isOwner())
             ->action(function (array $arguments): void {
-                $this->family()->teamInvitations()->whereKey($arguments['invitation'] ?? null)->delete();
+                $this->household()->teamInvitations()->whereKey($arguments['invitation'] ?? null)->delete();
             });
     }
 
@@ -278,8 +280,8 @@ class Family extends Page
         return Auth::user();
     }
 
-    /** Leaving or deleting the current family puts the user back in their own. */
-    private function backToOwnFamily(): void
+    /** Leaving or deleting the current household puts the user back in their own. */
+    private function backToOwnHousehold(): void
     {
         $user = $this->user()->refresh();
 
@@ -298,7 +300,7 @@ class Family extends Page
             return $callback();
         } catch (ValidationException $e) {
             Notification::make()
-                ->title(collect($e->errors())->flatten()->first() ?? __('family.notifications.failed'))
+                ->title(collect($e->errors())->flatten()->first() ?? __('household.notifications.failed'))
                 ->danger()
                 ->send();
 

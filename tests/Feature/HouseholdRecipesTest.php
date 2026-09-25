@@ -2,14 +2,14 @@
 
 namespace Tests\Feature;
 
-use App\Actions\Families\CreatePersonalFamily;
+use App\Actions\Households\CreatePersonalHousehold;
 use App\Filament\Resources\RecipeRevisions\Pages\EditRecipeRevision;
 use App\Filament\Resources\Recipes\Pages\CreateRecipe;
 use App\Filament\Resources\Recipes\Pages\ListRecipes;
-use App\Mail\FamilyInvitation;
+use App\Mail\HouseholdInvitationMail;
 use App\Models\Recipe;
 use App\Models\RecipeRevision;
-use App\Models\Team;
+use App\Models\Household;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 use Tests\TestCase;
 
-class FamilyRecipesTest extends TestCase
+class HouseholdRecipesTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -28,17 +28,17 @@ class FamilyRecipesTest extends TestCase
         Filament::setCurrentPanel('app');
     }
 
-    private function userWithFamily(string $name): User
+    private function userWithHousehold(string $name): User
     {
         $user = User::factory()->create(['name' => $name]);
-        app(CreatePersonalFamily::class)->handle($user);
+        app(CreatePersonalHousehold::class)->handle($user);
 
         return $user->fresh();
     }
 
-    private function join(User $user, Team $family): User
+    private function join(User $user, Household $household): User
     {
-        $family->users()->attach($user, ['role' => 'editor']);
+        $household->users()->attach($user, ['role' => 'editor']);
 
         return $user->fresh();
     }
@@ -54,18 +54,18 @@ class FamilyRecipesTest extends TestCase
         return $recipe;
     }
 
-    public function test_a_new_recipe_goes_into_the_owners_current_family(): void
+    public function test_a_new_recipe_goes_into_the_owners_current_household(): void
     {
-        $eric = $this->userWithFamily('Eric Krona');
+        $eric = $this->userWithHousehold('Eric Krona');
 
-        $this->assertSame($eric->current_team_id, $this->recipeBy($eric, 'Pancakes')->team_id);
+        $this->assertSame($eric->current_household_id, $this->recipeBy($eric, 'Pancakes')->household_id);
     }
 
-    public function test_family_members_see_and_edit_each_others_recipes(): void
+    public function test_household_members_see_and_edit_each_others_recipes(): void
     {
-        $eric = $this->userWithFamily('Eric Krona');
-        $anna = $this->join($this->userWithFamily('Anna Svensson'), $eric->currentTeam);
-        $stranger = $this->userWithFamily('Sam Stranger');
+        $eric = $this->userWithHousehold('Eric Krona');
+        $anna = $this->join($this->userWithHousehold('Anna Svensson'), $eric->currentTeam);
+        $stranger = $this->userWithHousehold('Sam Stranger');
 
         $pancakes = $this->recipeBy($eric, 'Pancakes');
         $revision = $pancakes->revisions()->first();
@@ -84,63 +84,63 @@ class FamilyRecipesTest extends TestCase
         $this->assertFalse(RecipeRevision::whereHas('recipe', fn ($q) => $q->accessibleTo($stranger))->whereKey($revision)->exists());
     }
 
-    public function test_a_recipe_can_be_created_in_another_family(): void
+    public function test_a_recipe_can_be_created_in_another_household(): void
     {
-        $eric = $this->userWithFamily('Eric Krona');
-        $anna = $this->join($this->userWithFamily('Anna Svensson'), $eric->currentTeam);
+        $eric = $this->userWithHousehold('Eric Krona');
+        $anna = $this->join($this->userWithHousehold('Anna Svensson'), $eric->currentTeam);
 
         $this->actingAs($anna);
         Livewire::test(CreateRecipe::class)
-            ->assertFormFieldIsVisible('team_id')
-            ->fillForm(['team_id' => $eric->current_team_id, 'default_locale' => 'en', 'visibility' => 'private', 'title' => 'Waffles'])
+            ->assertFormFieldIsVisible('household_id')
+            ->fillForm(['household_id' => $eric->current_household_id, 'default_locale' => 'en', 'visibility' => 'private', 'title' => 'Waffles'])
             ->call('create')
             ->assertHasNoFormErrors();
 
-        $this->assertSame($eric->current_team_id, Recipe::latest('id')->first()->team_id);
+        $this->assertSame($eric->current_household_id, Recipe::latest('id')->first()->household_id);
     }
 
-    public function test_a_recipe_cannot_be_put_into_someone_elses_family(): void
+    public function test_a_recipe_cannot_be_put_into_someone_elses_household(): void
     {
-        $anna = $this->userWithFamily('Anna Svensson');
-        $this->join($anna, $this->userWithFamily('Eric Krona')->currentTeam);
-        $stranger = $this->userWithFamily('Sam Stranger');
+        $anna = $this->userWithHousehold('Anna Svensson');
+        $this->join($anna, $this->userWithHousehold('Eric Krona')->currentTeam);
+        $stranger = $this->userWithHousehold('Sam Stranger');
 
         $this->actingAs($anna->fresh());
         Livewire::test(CreateRecipe::class)
-            ->fillForm(['team_id' => $stranger->current_team_id, 'default_locale' => 'en', 'visibility' => 'private'])
+            ->fillForm(['household_id' => $stranger->current_household_id, 'default_locale' => 'en', 'visibility' => 'private'])
             ->call('create')
-            ->assertHasFormErrors(['team_id']);
+            ->assertHasFormErrors(['household_id']);
     }
 
-    public function test_the_family_field_is_hidden_with_only_one_family(): void
+    public function test_the_household_field_is_hidden_with_only_one_household(): void
     {
-        $this->actingAs($this->userWithFamily('Eric Krona'));
+        $this->actingAs($this->userWithHousehold('Eric Krona'));
 
-        Livewire::test(CreateRecipe::class)->assertFormFieldIsHidden('team_id');
+        Livewire::test(CreateRecipe::class)->assertFormFieldIsHidden('household_id');
     }
 
-    public function test_existing_recipes_move_into_their_owners_family(): void
+    public function test_existing_recipes_move_into_their_owners_household(): void
     {
         $eric = User::factory()->create(['name' => 'Eric Krona']);
         $recipe = $this->recipeBy($eric, 'Pancakes');
-        $this->assertNull($recipe->team_id);
+        $this->assertNull($recipe->household_id);
 
-        app(CreatePersonalFamily::class)->handle($eric);
-        (require database_path('migrations/2026_09_25_000060_add_team_id_to_recipes_table.php'))->down();
-        (require database_path('migrations/2026_09_25_000060_add_team_id_to_recipes_table.php'))->up();
+        app(CreatePersonalHousehold::class)->handle($eric);
+        (require database_path('migrations/2026_09_25_000060_add_household_id_to_recipes_table.php'))->down();
+        (require database_path('migrations/2026_09_25_000060_add_household_id_to_recipes_table.php'))->up();
 
-        $this->assertSame($eric->fresh()->current_team_id, $recipe->fresh()->team_id);
+        $this->assertSame($eric->fresh()->current_household_id, $recipe->fresh()->household_id);
     }
 
-    public function test_an_invited_user_who_already_has_an_account_joins_and_switches_family(): void
+    public function test_an_invited_user_who_already_has_an_account_joins_and_switches_household(): void
     {
-        $eric = $this->userWithFamily('Eric Krona');
-        $anna = $this->userWithFamily('Anna Svensson');
+        $eric = $this->userWithHousehold('Eric Krona');
+        $anna = $this->userWithHousehold('Anna Svensson');
         $annasOwn = $this->recipeBy($anna, 'Cinnamon buns');
         $erics = $this->recipeBy($eric, 'Pancakes');
 
         $invitation = $eric->currentTeam->teamInvitations()->create(['email' => $anna->email, 'role' => 'editor']);
-        $url = URL::signedRoute('families.invitations.accept', ['invitation' => $invitation]);
+        $url = URL::signedRoute('households.invitations.accept', ['invitation' => $invitation]);
 
         $this->get($url)->assertRedirect(route('login'));
 
@@ -148,26 +148,27 @@ class FamilyRecipesTest extends TestCase
 
         $anna->refresh();
         $this->assertTrue($anna->belongsToTeam($eric->currentTeam));
-        $this->assertSame($eric->current_team_id, $anna->current_team_id);
-        $this->assertNotNull($anna->personalTeam(), 'keeps their own family');
+        $this->assertSame($eric->current_household_id, $anna->current_household_id);
+        $this->assertNotNull($anna->personalTeam(), 'keeps their own household');
         $this->assertModelMissing($invitation);
         $this->assertEqualsCanonicalizing(
             [$annasOwn->getKey(), $erics->getKey()],
             Recipe::accessibleTo($anna)->pluck('id')->all(),
         );
         $this->assertNotEmpty(session('filament.notifications'));
+        $this->assertStringContainsString('The Krona household', json_encode(session('filament.notifications')));
     }
 
     public function test_an_invitation_cannot_be_accepted_from_another_account(): void
     {
-        $eric = $this->userWithFamily('Eric Krona');
-        $anna = $this->userWithFamily('Anna Svensson');
-        $other = $this->userWithFamily('Sam Stranger');
+        $eric = $this->userWithHousehold('Eric Krona');
+        $anna = $this->userWithHousehold('Anna Svensson');
+        $other = $this->userWithHousehold('Sam Stranger');
 
         $invitation = $eric->currentTeam->teamInvitations()->create(['email' => $anna->email, 'role' => 'editor']);
 
         $this->actingAs($other)
-            ->get(URL::signedRoute('families.invitations.accept', ['invitation' => $invitation]))
+            ->get(URL::signedRoute('households.invitations.accept', ['invitation' => $invitation]))
             ->assertRedirect();
 
         $this->assertFalse($anna->fresh()->belongsToTeam($eric->currentTeam));
@@ -177,12 +178,12 @@ class FamilyRecipesTest extends TestCase
 
     public function test_the_invitation_email_links_to_panel_registration(): void
     {
-        $eric = $this->userWithFamily('Eric Krona');
+        $eric = $this->userWithHousehold('Eric Krona');
         $invitation = $eric->currentTeam->teamInvitations()->create(['email' => 'new@example.com', 'role' => 'editor']);
 
-        (new FamilyInvitation($invitation))
+        (new HouseholdInvitationMail($invitation))
             ->assertSeeInHtml(route('filament.app.auth.register'))
-            ->assertSeeInHtml('The Krona family')
-            ->assertSeeInHtml('/families/invitations/'.$invitation->getKey());
+            ->assertSeeInHtml('The Krona household')
+            ->assertSeeInHtml('/households/invitations/'.$invitation->getKey());
     }
 }

@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use Anthropic\Client;
-use App\Actions\Families\CreatePersonalFamily;
+use App\Actions\Households\CreatePersonalHousehold;
 use App\Models\User;
 use App\Recipes\Import\ClaudeRecipeExtractor;
 use App\Recipes\Import\RecipeExtractor;
@@ -30,13 +30,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Every account starts with a family of its own to invite people into. The panel fires
+        // Every account starts with a household of its own to invite people into. The panel fires
         // its own event rather than Laravel's, so listen for both.
         Event::listen([Registered::class, PanelRegistered::class], function (Registered|PanelRegistered $event): void {
             $user = $event instanceof PanelRegistered ? $event->getUser() : $event->user;
 
             if ($user instanceof User) {
-                app(CreatePersonalFamily::class)->handle($user);
+                app(CreatePersonalHousehold::class)->handle($user);
             }
         });
     }

@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\AcceptFamilyInvitation;
+use App\Http\Controllers\AcceptHouseholdInvitation;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\SharedRecipeController;
 use App\Http\Middleware\SetUserLocale;
@@ -16,15 +16,15 @@ Route::get('/r/{recipe:uuid}', SharedRecipeController::class)->name('recipes.sha
 // invitation link comes back to it afterwards.
 Route::redirect('/login', '/app/login')->name('login');
 
-// Our accept route, which FamilyInvitation links to (see the controller for why).
-Route::get('/families/invitations/{invitation}', AcceptFamilyInvitation::class)
+// Our accept route, which HouseholdInvitationMail links to (see the controller for why).
+Route::get('/households/invitations/{invitation}', AcceptHouseholdInvitation::class)
     ->middleware(['auth', 'signed', SetUserLocale::class])
-    ->name('families.invitations.accept');
+    ->name('households.invitations.accept');
 
-// Jetstream's own pages are replaced by the panel's family page and profile; its URIs are
+// Jetstream's own pages are replaced by the panel's household page and profile; its URIs are
 // taken over here so its views — deleted — are never reached.
 Route::get('/team-invitations/{invitation}', fn () => abort(404));
 Route::redirect('/dashboard', '/app')->name('dashboard');
-Route::redirect('/teams/create', '/app/family');
-Route::redirect('/teams/{team}', '/app/family');
+Route::redirect('/teams/create', '/app/household');
+Route::redirect('/teams/{team}', '/app/household');
 Route::redirect('/user/profile', '/app/profile');

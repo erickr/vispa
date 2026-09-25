@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Actions\Families\CreatePersonalFamily;
+use App\Actions\Households\CreatePersonalHousehold;
 use App\Filament\Resources\Ingredients\Pages\CreateIngredient;
 use App\Filament\Resources\Ingredients\Pages\EditIngredient;
 use App\Filament\Resources\Ingredients\Pages\ListIngredients;
@@ -14,7 +14,7 @@ use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * Anyone can add ingredients, and what they add belongs to them and their family. The catalog
+ * Anyone can add ingredients, and what they add belongs to them and their household. The catalog
  * admin's ingredients are shared with everyone and only the admin edits them.
  */
 class IngredientAccessTest extends TestCase
@@ -110,20 +110,20 @@ class IngredientAccessTest extends TestCase
         $this->assertSame(2, Ingredient::where('canonical_name', 'gochujang')->count());
     }
 
-    /** Carol joins Alice's family; Bob stays outside it. */
-    private function carolInAlicesFamily(): User
+    /** Carol joins Alice's household; Bob stays outside it. */
+    private function carolInAlicesHousehold(): User
     {
-        $family = app(CreatePersonalFamily::class)->handle($this->alice);
+        $household = app(CreatePersonalHousehold::class)->handle($this->alice);
         $carol = User::factory()->create();
-        app(CreatePersonalFamily::class)->handle($carol);
-        $family->users()->attach($carol, ['role' => 'editor']);
+        app(CreatePersonalHousehold::class)->handle($carol);
+        $household->users()->attach($carol, ['role' => 'editor']);
 
         return $carol->fresh();
     }
 
-    public function test_family_members_see_and_edit_each_others_ingredients(): void
+    public function test_household_members_see_and_edit_each_others_ingredients(): void
     {
-        $carol = $this->carolInAlicesFamily();
+        $carol = $this->carolInAlicesHousehold();
         $gochujang = $this->createAs($this->alice, 'gochujang');
 
         $this->actingAs($carol);
@@ -142,9 +142,9 @@ class IngredientAccessTest extends TestCase
         $this->get(EditIngredient::getUrl(['record' => $gochujang]))->assertNotFound();
     }
 
-    public function test_names_are_unique_within_the_family(): void
+    public function test_names_are_unique_within_the_household(): void
     {
-        $carol = $this->carolInAlicesFamily();
+        $carol = $this->carolInAlicesHousehold();
         $this->createAs($this->alice, 'gochujang');
 
         $this->actingAs($carol);

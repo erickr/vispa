@@ -2,14 +2,14 @@
 
 namespace Database\Factories;
 
-use App\Models\Team;
+use App\Models\Household;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<Team>
+ * @extends Factory<Household>
  */
-class TeamFactory extends Factory
+class HouseholdFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -21,7 +21,7 @@ class TeamFactory extends Factory
         return [
             'name' => $this->faker->unique()->company(),
             'user_id' => User::factory(),
-            'personal_team' => true,
+            'personal_household' => true,
         ];
     }
 }

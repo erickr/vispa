@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\Team;
+use App\Models\Household;
 use App\Models\User;
 use App\Support\SupportedLocales;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -47,17 +47,17 @@ class UserFactory extends Factory
     }
 
     /**
-     * Give the user the family they would have got on sign-up. Jetstream's own tests call it
+     * Give the user the household they would have got on sign-up. Jetstream's own tests call it
      * by this name.
      */
     public function withPersonalTeam(?callable $callback = null): static
     {
         return $this->has(
-            Team::factory()
+            Household::factory()
                 ->state(fn (array $attributes, User $user) => [
-                    'name' => Team::familyNameFor($user->name),
+                    'name' => Household::defaultNameFor($user->name),
                     'user_id' => $user->id,
-                    'personal_team' => true,
+                    'personal_household' => true,
                 ])
                 ->when(is_callable($callback), $callback),
             'ownedTeams'

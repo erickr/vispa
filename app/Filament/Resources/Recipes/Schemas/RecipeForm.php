@@ -42,15 +42,15 @@ class RecipeForm
                         ->selectablePlaceholder(false)
                         ->native(false),
 
-                    // Only a question for someone in more than one family; everyone else's recipes
-                    // go to their one family (see Recipe::booted()).
-                    Select::make('team_id')
-                        ->label(__('family.fields.family'))
-                        ->helperText(__('family.fields.family_helper'))
-                        ->options(fn (?Recipe $record): array => self::familyOptions($record))
-                        ->default(fn (): ?int => Auth::user()?->current_team_id)
-                        ->in(fn (?Recipe $record): array => array_keys(self::familyOptions($record)))
-                        ->visible(fn (?Recipe $record): bool => count(self::familyOptions($record)) > 1)
+                    // Only a question for someone in more than one household; everyone else's recipes
+                    // go to their one household (see Recipe::booted()).
+                    Select::make('household_id')
+                        ->label(__('household.fields.household'))
+                        ->helperText(__('household.fields.household_helper'))
+                        ->options(fn (?Recipe $record): array => self::householdOptions($record))
+                        ->default(fn (): ?int => Auth::user()?->current_household_id)
+                        ->in(fn (?Recipe $record): array => array_keys(self::householdOptions($record)))
+                        ->visible(fn (?Recipe $record): bool => count(self::householdOptions($record)) > 1)
                         ->selectablePlaceholder(false)
                         ->native(false),
 
@@ -118,7 +118,7 @@ class RecipeForm
                             name: 'forkedFromRecipe',
                             titleAttribute: 'uuid',
                             // Only recipes this user could open: the picker must not list other
-                            // families' recipes.
+                            // households' recipes.
                             modifyQueryUsing: fn ($query, $record) => $query
                                 ->accessibleTo(Auth::user())
                                 ->when($record, fn ($query) => $query->where('id', '!=', $record->id)),
@@ -265,16 +265,16 @@ class RecipeForm
     }
 
     /**
-     * The user's families, plus the one the recipe is already in should they have left it.
+     * The user's households, plus the one the recipe is already in should they have left it.
      *
      * @return array<int, string>
      */
-    private static function familyOptions(?Recipe $record): array
+    private static function householdOptions(?Recipe $record): array
     {
         $options = Auth::user()?->allTeams()->pluck('name', 'id')->all() ?? [];
 
-        if ($record?->team && ! isset($options[$record->team_id])) {
-            $options[$record->team_id] = $record->team->name;
+        if ($record?->household && ! isset($options[$record->household_id])) {
+            $options[$record->household_id] = $record->household->name;
         }
 
         return $options;

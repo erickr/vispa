@@ -4,28 +4,27 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * A household is Jetstream's team under our own name (see App\Models\Household).
+ */
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('teams', function (Blueprint $table) {
+        Schema::create('households', function (Blueprint $table) {
             $table->id();
             $table->uuid('uuid')->unique();
+            // The owner.
             $table->foreignId('user_id')->index();
             $table->string('name');
-            $table->boolean('personal_team');
+            // The one household every user owns and cannot delete or leave.
+            $table->boolean('personal_household');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('teams');
+        Schema::dropIfExists('households');
     }
 };

@@ -22,8 +22,8 @@ return [
 
     'visibility' => [
         'shared' => 'Alla',
-        'private' => 'Du och din familj',
-        'family' => 'Din familj',
+        'private' => 'Du och ditt hushåll',
+        'household' => 'Ditt hushåll',
     ],
 
     'validation' => [

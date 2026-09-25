@@ -2,7 +2,7 @@
 
 namespace App\Actions\Jetstream;
 
-use App\Models\Team;
+use App\Models\Household;
 use App\Models\User;
 use Closure;
 use Illuminate\Contracts\Validation\Rule;
@@ -17,42 +17,42 @@ use Laravel\Jetstream\Rules\Role;
 class AddTeamMember implements AddsTeamMembers
 {
     /**
-     * Add a new team member to the given team.
+     * Add a new household member to the given household.
      */
-    public function add(User $user, Team $team, string $email, ?string $role = null): void
+    public function add(User $user, Household $household, string $email, ?string $role = null): void
     {
-        Gate::forUser($user)->authorize('addTeamMember', $team);
+        Gate::forUser($user)->authorize('addTeamMember', $household);
 
-        $this->validate($team, $email, $role);
+        $this->validate($household, $email, $role);
 
-        $newTeamMember = Jetstream::findUserByEmailOrFail($email);
+        $newMember = Jetstream::findUserByEmailOrFail($email);
 
-        AddingTeamMember::dispatch($team, $newTeamMember);
+        AddingTeamMember::dispatch($household, $newMember);
 
-        $team->users()->attach(
-            $newTeamMember, ['role' => $role]
+        $household->users()->attach(
+            $newMember, ['role' => $role]
         );
 
-        TeamMemberAdded::dispatch($team, $newTeamMember);
+        TeamMemberAdded::dispatch($household, $newMember);
     }
 
     /**
      * Validate the add member operation.
      */
-    protected function validate(Team $team, string $email, ?string $role): void
+    protected function validate(Household $household, string $email, ?string $role): void
     {
         Validator::make([
             'email' => $email,
             'role' => $role,
         ], $this->rules(), [
-            'email.exists' => __('We were unable to find a registered user with this email address.'),
+            'email.exists' => __('household.validation.no_such_user'),
         ])->after(
-            $this->ensureUserIsNotAlreadyOnTeam($team, $email)
+            $this->ensureUserIsNotAlreadyOnTeam($household, $email)
         )->validateWithBag('addTeamMember');
     }
 
     /**
-     * Get the validation rules for adding a team member.
+     * Get the validation rules for adding a household member.
      *
      * @return array<string, Rule|array|string>
      */
@@ -67,15 +67,15 @@ class AddTeamMember implements AddsTeamMembers
     }
 
     /**
-     * Ensure that the user is not already on the team.
+     * Ensure that the user is not already on the household.
      */
-    protected function ensureUserIsNotAlreadyOnTeam(Team $team, string $email): Closure
+    protected function ensureUserIsNotAlreadyOnTeam(Household $household, string $email): Closure
     {
-        return function ($validator) use ($team, $email) {
+        return function ($validator) use ($household, $email) {
             $validator->errors()->addIf(
-                $team->hasUserWithEmail($email),
+                $household->hasUserWithEmail($email),
                 'email',
-                __('This user already belongs to the team.')
+                __('household.validation.already_member')
             );
         };
     }

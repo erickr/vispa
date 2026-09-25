@@ -2,7 +2,7 @@
 
 namespace App\Actions\Fortify;
 
-use App\Actions\Families\CreatePersonalFamily;
+use App\Actions\Households\CreatePersonalHousehold;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -35,7 +35,7 @@ class CreateNewUser implements CreatesNewUsers
                 'password' => Hash::make($input['password']),
             ]);
 
-            app(CreatePersonalFamily::class)->handle($user);
+            app(CreatePersonalHousehold::class)->handle($user);
 
             return $user;
         });

@@ -59,7 +59,7 @@ class Ingredient extends Model
     }
 
     /**
-     * Shared ingredients plus the user's family's (their own included). `$alsoInclude` keeps an
+     * Shared ingredients plus the user's household's (their own included). `$alsoInclude` keeps an
      * already-picked ingredient resolvable even when it isn't visible to this user.
      */
     public function scopeVisibleTo(Builder $query, ?User $user, int|string|null $alsoInclude = null): void
@@ -68,7 +68,7 @@ class Ingredient extends Model
             $query->whereNull('owner_user_id');
 
             if ($user) {
-                $query->orWhereIn('owner_user_id', $user->familyMemberIds());
+                $query->orWhereIn('owner_user_id', $user->householdMemberIds());
             }
 
             if (filled($alsoInclude)) {

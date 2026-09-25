@@ -12,7 +12,7 @@ use Laravel\Fortify\Fortify;
 /**
  * Fortify comes in with Jetstream but the Filament panel owns authentication: signing in,
  * registering, the profile and signing out all happen there. Fortify's routes are therefore
- * not registered at all, leaving only Jetstream's family pages.
+ * not registered at all, leaving only Jetstream's household pages.
  */
 class FortifyServiceProvider extends ServiceProvider
 {

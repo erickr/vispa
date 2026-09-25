@@ -22,8 +22,8 @@ return [
 
     'visibility' => [
         'shared' => 'Everyone',
-        'private' => 'You and your family',
-        'family' => 'Your family',
+        'private' => 'You and your household',
+        'household' => 'Your household',
     ],
 
     'validation' => [

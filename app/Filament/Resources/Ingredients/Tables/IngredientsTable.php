@@ -28,16 +28,16 @@ class IngredientsTable
                     ->state(fn (Ingredient $record): string => match (true) {
                         $record->isShared() => 'shared',
                         $record->owner_user_id === Auth::id() => 'private',
-                        default => 'family',
+                        default => 'household',
                     })
-                    // A family member's ingredient says whose it is.
+                    // A household member's ingredient says whose it is.
                     ->description(fn (Ingredient $record): ?string => $record->isShared() || $record->owner_user_id === Auth::id()
                         ? null
                         : $record->owner?->name)
                     ->formatStateUsing(fn (string $state): string => __('ingredient.visibility.'.$state))
                     ->color(fn (string $state): string => match ($state) {
                         'shared' => 'gray',
-                        'family' => 'info',
+                        'household' => 'info',
                         default => 'primary',
                     }),
                 TextColumn::make('translations_count')

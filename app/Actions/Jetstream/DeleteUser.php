@@ -2,7 +2,7 @@
 
 namespace App\Actions\Jetstream;
 
-use App\Models\Team;
+use App\Models\Household;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Laravel\Jetstream\Contracts\DeletesTeams;
@@ -29,14 +29,14 @@ class DeleteUser implements DeletesUsers
     }
 
     /**
-     * Delete the teams and team associations attached to the user.
+     * Delete the households and household associations attached to the user.
      */
     protected function deleteTeams(User $user): void
     {
         $user->teams()->detach();
 
-        $user->ownedTeams->each(function (Team $team) {
-            $this->deletesTeams->delete($team);
+        $user->ownedTeams->each(function (Household $household) {
+            $this->deletesTeams->delete($household);
         });
     }
 }

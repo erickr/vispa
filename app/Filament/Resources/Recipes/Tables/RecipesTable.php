@@ -28,7 +28,7 @@ class RecipesTable
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
                 'revisions' => fn ($q) => $q->withCount(['ingredients', 'instructionSteps']),
                 'revisions.images',
-                'team',
+                'household',
             ]))
             ->columns([
                 ImageColumn::make('cover')
@@ -70,11 +70,11 @@ class RecipesTable
                     ->color('info')
                     ->placeholder('—'),
 
-                // Everything listed is from one of the user's families; which one only matters
+                // Everything listed is from one of the user's households; which one only matters
                 // to someone in several.
-                TextColumn::make('team.name')
-                    ->label(__('family.fields.family'))
-                    ->visible(fn (): bool => self::inSeveralFamilies())
+                TextColumn::make('household.name')
+                    ->label(__('household.fields.household'))
+                    ->visible(fn (): bool => self::inSeveralHouseholds())
                     ->placeholder('—'),
 
                 TextColumn::make('visibility')
@@ -94,10 +94,10 @@ class RecipesTable
                 TextColumn::make('uuid')->label(__('recipe.fields.uuid'))->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('team_id')
-                    ->label(__('family.fields.family'))
+                SelectFilter::make('household_id')
+                    ->label(__('household.fields.household'))
                     ->options(fn (): array => Auth::user()?->allTeams()->pluck('name', 'id')->all() ?? [])
-                    ->visible(fn (): bool => self::inSeveralFamilies()),
+                    ->visible(fn (): bool => self::inSeveralHouseholds()),
                 SelectFilter::make('visibility')
                     ->label(__('recipe.fields.visibility'))
                     ->options([
@@ -154,7 +154,7 @@ class RecipesTable
         ]));
     }
 
-    private static function inSeveralFamilies(): bool
+    private static function inSeveralHouseholds(): bool
     {
         return (Auth::user()?->allTeams()->count() ?? 0) > 1;
     }
