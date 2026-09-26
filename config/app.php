@@ -17,6 +17,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Deploy Number
+    |--------------------------------------------------------------------------
+    |
+    | How many times production has been deployed, written to DEPLOY_NUMBER by
+    | deploy/server_deploy.sh from a counter kept outside the release. The
+    | panel footer shows it as a version, 0.01 per deploy. Zero when the file
+    | is missing, as it is locally.
+    |
+    */
+
+    'deploy_number' => (int) (@file_get_contents(base_path('DEPLOY_NUMBER')) ?: 0),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

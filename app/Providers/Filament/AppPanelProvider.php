@@ -15,6 +15,7 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -92,6 +93,7 @@ class AppPanelProvider extends PanelProvider
                     ->visible(fn (): bool => filled(config('services.anthropic.key')))
                     ->url(fn (): string => RecipeResource::getUrl('index').'?action=importFromLink'),
             ])
+            ->renderHook(PanelsRenderHook::FOOTER, fn () => view('filament.version'))
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([

@@ -18,6 +18,11 @@ echo "Deploying application ..."
     # Expose storage/app/public (uploaded recipe photos) at public/storage
     php artisan storage:link
 
+    # Count this deploy. The counter lives beside current/ so a reset never loses
+    # it; the copy in current/ is read into config by `optimize` below.
+    echo $(( $(cat ../deploy_number 2>/dev/null || echo 0) + 1 )) > ../deploy_number
+    cp ../deploy_number DEPLOY_NUMBER
+
     # Clear cache
     php artisan optimize
 
