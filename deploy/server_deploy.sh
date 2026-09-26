@@ -36,6 +36,6 @@ echo "Deploying application ..."
 php artisan up
 
 # Restart the hosting provider's queue worker so it picks up the new code
-uapi QueueWorkers update action=restart 0
+uapi QueueWorkers update action=restart worker_number=1
 
 echo "Application deployed!"
