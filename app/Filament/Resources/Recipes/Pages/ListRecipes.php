@@ -35,9 +35,11 @@ class ListRecipes extends ListRecords
                         ->required()
                         ->maxLength(500),
                 ])
-                ->action(fn (array $data) => $this->redirect(RecipeResource::getUrl('import', [
-                    'import' => ImportRecipe::start(Auth::user(), trim($data['url'])),
-                ]))),
+                ->action(function (array $data): void {
+                    if ($import = ImportRecipe::startOrNotify(Auth::user(), trim($data['url']))) {
+                        $this->redirect(RecipeResource::getUrl('import', ['import' => $import]));
+                    }
+                }),
             CreateAction::make(),
         ];
     }

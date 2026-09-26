@@ -6,15 +6,18 @@ use App\Models\RecipeImport;
 use App\Models\RecipeRevision;
 use App\Models\Unit;
 use App\Models\User;
+use App\Recipes\Import\ImportLimitReached;
 use App\Recipes\Import\RecipeExtractor;
 use App\Recipes\Import\RecipeImporter;
 use App\Recipes\Import\RecipeImportException;
 use App\Recipes\Import\RecipePageReader;
 use App\Support\SafeUrlFetcher;
+use Closure;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Throwable;
 
 /**
@@ -35,9 +38,15 @@ class ImportRecipe implements ShouldQueue
     /**
      * Record the attempt and queue it; the returned row is what the status page polls. With
      * $into, the page fills that link-only revision instead of becoming a new recipe.
+     *
+     * Every way in comes through here, so this is where the user's import budget is spent.
+     *
+     * @throws ImportLimitReached when the budget is used up; nothing is recorded or queued.
      */
     public static function start(User $user, string $url, ?RecipeRevision $into = null): RecipeImport
     {
+        static::spendAllowance($user);
+
         $import = RecipeImport::create([
             'user_id' => $user->getKey(),
             'source_type' => 'url',
@@ -50,6 +59,64 @@ class ImportRecipe implements ShouldQueue
         static::dispatch($import);
 
         return $import;
+    }
+
+    /**
+     * start() for the panel's buttons: a used-up budget becomes a notification rather than an
+     * error page, and null tells the caller to stay where it is. $into may be a closure, called
+     * only once the import is allowed, for a caller that has to write a revision to fill.
+     *
+     * @param  RecipeRevision|(Closure(): RecipeRevision)|null  $into
+     */
+    public static function startOrNotify(User $user, string $url, RecipeRevision|Closure|null $into = null): ?RecipeImport
+    {
+        try {
+            static::ensureAllowance($user);
+
+            return static::start($user, $url, value($into));
+        } catch (ImportLimitReached $e) {
+            $e->notification()->send();
+
+            return null;
+        }
+    }
+
+    /**
+     * An hourly and a daily allowance per user (services.anthropic.imports_per_*). Failed imports
+     * count too: the model call may already have been paid for.
+     *
+     * @return array<string, array{0: int, 1: int}> rate limiter key => [max attempts, decay seconds]
+     */
+    private static function allowances(User $user): array
+    {
+        return [
+            "recipe-imports:hour:{$user->getKey()}" => [(int) config('services.anthropic.imports_per_hour'), 3600],
+            "recipe-imports:day:{$user->getKey()}" => [(int) config('services.anthropic.imports_per_day'), 86400],
+        ];
+    }
+
+    /** @throws ImportLimitReached */
+    private static function ensureAllowance(User $user): void
+    {
+        foreach (static::allowances($user) as $key => [$max]) {
+            if (RateLimiter::tooManyAttempts($key, $max)) {
+                throw new ImportLimitReached(RateLimiter::availableIn($key));
+            }
+        }
+    }
+
+    /**
+     * Both windows are checked before either is counted, so a refused attempt costs nothing.
+     *
+     * @throws ImportLimitReached
+     */
+    private static function spendAllowance(User $user): void
+    {
+        static::ensureAllowance($user);
+
+        foreach (static::allowances($user) as $key => [, $decaySeconds]) {
+            RateLimiter::hit($key, $decaySeconds);
+        }
     }
 
     public function handle(SafeUrlFetcher $fetcher, RecipePageReader $reader, RecipeExtractor $extractor, RecipeImporter $importer): void

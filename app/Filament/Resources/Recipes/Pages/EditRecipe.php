@@ -45,7 +45,9 @@ class EditRecipe extends EditRecord
     protected function afterSave(): void
     {
         if ($this->importFromSource) {
-            $this->import = ImportRecipe::start(Auth::user(), $this->record->source_url, $this->revisionToFill());
+            // A closure, as revisionToFill() may write a revision: over the import limit, the
+            // link is saved and nothing else changes.
+            $this->import = ImportRecipe::startOrNotify(Auth::user(), $this->record->source_url, fn (): RecipeRevision => $this->revisionToFill());
         }
     }
 

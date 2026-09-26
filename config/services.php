@@ -40,6 +40,16 @@ return [
     'anthropic' => [
         'key' => env('ANTHROPIC_API_KEY'),
         'model' => env('ANTHROPIC_MODEL', 'claude-opus-5'),
+        // Every import is a paid model call and sign-up is open, so each user gets a budget
+        // (App\Jobs\ImportRecipe::start()). Both windows apply; 0 turns imports off.
+        'imports_per_hour' => (int) env('ANTHROPIC_IMPORTS_PER_HOUR', 10),
+        'imports_per_day' => (int) env('ANTHROPIC_IMPORTS_PER_DAY', 30),
+    ],
+
+    // The "Fetch" button beside a recipe's link reads the page's title server-side
+    // (App\Support\PageTitleFetcher). Limited per user so the server is no one's fetch proxy.
+    'page_titles' => [
+        'fetches_per_hour' => (int) env('PAGE_TITLE_FETCHES_PER_HOUR', 30),
     ],
 
 ];

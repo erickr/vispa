@@ -78,6 +78,26 @@ class FetchRecipeTitleTest extends TestCase
         $this->assertSame('Namnlöst recept', Recipe::sole()->revisions()->sole()->title);
     }
 
+    public function test_fetching_stops_at_the_hourly_limit(): void
+    {
+        config(['services.page_titles.fetches_per_hour' => 2]);
+        Http::fake(['*' => Http::response('<h1>Plankstek</h1>')]);
+
+        $page = Livewire::test(CreateRecipe::class)->fillForm(['source_url' => self::URL]);
+
+        $page->callAction($this->fetchButton())->assertSchemaStateSet(['title' => 'Plankstek']);
+        $page->callAction($this->fetchButton());
+        $page->fillForm(['title' => 'Mitt namn'])
+            ->callAction($this->fetchButton())
+            ->assertNotified(__('recipe.notifications.fetch_title.limited'))
+            ->assertSchemaStateSet(['title' => 'Mitt namn']);
+
+        Http::assertSentCount(2);
+
+        $this->travel(61)->minutes();
+        $page->callAction($this->fetchButton())->assertSchemaStateSet(['title' => 'Plankstek']);
+    }
+
     public function test_private_and_local_addresses_are_never_fetched(): void
     {
         Http::fake();
