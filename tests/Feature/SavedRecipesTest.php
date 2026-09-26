@@ -291,6 +291,46 @@ class SavedRecipesTest extends TestCase
             ->assertSee(__('recipe.saved.based_on', ['title' => 'Doe waffles']), escape: false);
     }
 
+    public function test_once_forked_the_saved_original_gives_its_place_to_your_version(): void
+    {
+        $this->saveAsEric();
+        $this->actingAs($this->anna);
+
+        Livewire::test(ViewRecipeRevision::class, ['record' => $this->published->getKey()])->callAction('fork');
+        $fork = Recipe::where('forked_from_recipe_id', $this->waffles->getKey())->sole();
+
+        // The whole household sees their version in its place, the filter included.
+        foreach ([$this->anna, $this->eric] as $member) {
+            $this->actingAs($member);
+
+            Livewire::test(ListRecipes::class)
+                ->assertCanSeeTableRecords([$fork])
+                ->assertCanNotSeeTableRecords([$this->waffles])
+                ->filterTable('saved_from_others')
+                ->assertCanNotSeeTableRecords([$this->waffles]);
+        }
+
+        // Hidden, not removed: the fork's link back to the original still opens.
+        $this->assertTrue($this->waffles->savedByHouseholds()->exists());
+        $this->get(RecipeRevisionResource::getUrl('view', ['record' => $this->published]))->assertOk();
+
+        // And the shared page opens their version rather than offering to save again.
+        $this->get(route('recipes.share', $this->waffles->uuid))
+            ->assertDontSee(__('share.save.action'))
+            ->assertSee(__('share.save.forked'))
+            ->assertSee(RecipeRevisionResource::getUrl('view', ['record' => $fork->revisions()->sole()]), escape: false);
+    }
+
+    public function test_the_owners_still_see_their_recipe_after_someone_forks_it(): void
+    {
+        $this->saveAsEric();
+        $this->actingAs($this->eric);
+        Livewire::test(ViewRecipeRevision::class, ['record' => $this->published->getKey()])->callAction('fork');
+
+        $this->actingAs($this->jane);
+        Livewire::test(ListRecipes::class)->assertCanSeeTableRecords([$this->waffles]);
+    }
+
     public function test_a_fork_reuses_an_ingredient_the_household_already_has(): void
     {
         $ours = new Ingredient(['canonical_name' => 'Doe Spice Mix']);

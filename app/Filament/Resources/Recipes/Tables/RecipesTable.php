@@ -25,11 +25,15 @@ class RecipesTable
         return $table
             // A recipe row is really a summary of its display revision: title, status, counts and
             // cover all come from there, so load the graph once instead of per column.
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
-                'revisions' => fn ($q) => $q->withCount(['ingredients', 'instructionSteps']),
-                'revisions.images',
-                'household',
-            ]))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query
+                // A saved recipe the household has made its own version of is listed as that
+                // version only.
+                ->withoutForkedSaves(Auth::user())
+                ->with([
+                    'revisions' => fn ($q) => $q->withCount(['ingredients', 'instructionSteps']),
+                    'revisions.images',
+                    'household',
+                ]))
             ->columns([
                 ImageColumn::make('cover')
                     ->label('')

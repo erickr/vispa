@@ -15,6 +15,7 @@ return [
         'open' => 'Open in Vispa',
         'own' => 'This is one of your household’s recipes.',
         'saved' => 'Saved in your household’s recipes.',
+        'forked' => 'You have your own version of this recipe.',
     ],
 
 ];

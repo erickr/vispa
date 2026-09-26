@@ -15,6 +15,7 @@ return [
         'open' => 'Öppna i Vispa',
         'own' => 'Det här är ett av ditt hushålls recept.',
         'saved' => 'Sparat bland hushållets recept.',
+        'forked' => 'Du har en egen version av det här receptet.',
     ],
 
 ];

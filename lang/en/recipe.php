@@ -121,7 +121,7 @@ return [
         'callout_description' => 'Read it and cook from it here. It stays theirs, so you see their latest published version — to change anything, make your own version.',
         'fork' => 'Make my own version',
         'fork_heading' => 'Make your own version?',
-        'fork_description' => 'You get a copy of this version as a private draft in your household, to change however you like. The original stays as it is, and yours remembers where it came from.',
+        'fork_description' => 'You get a copy of this version as a private draft in your household, to change however you like. Yours takes the original’s place in your recipes; the original stays as it is, and yours links back to it.',
         'fork_submit' => 'Make my version',
         'forked' => [
             'title' => 'Your own version is ready',

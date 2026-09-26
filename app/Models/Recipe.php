@@ -109,6 +109,26 @@ class Recipe extends Model
     }
 
     /**
+     * Leaves out someone else's recipe once the user's households have a version of their own:
+     * theirs stands in for it in the list. The save itself stays, so the fork's "Based on" link
+     * still opens the original.
+     */
+    public function scopeWithoutForkedSaves(Builder $query, ?User $user): void
+    {
+        $query->whereNot(fn (Builder $query) => $query
+            ->whereNot(fn (Builder $query) => $query->accessibleTo($user))
+            ->whereHas('forks', fn (Builder $forks) => $forks->accessibleTo($user)));
+    }
+
+    /**
+     * The user's own version of this recipe, newest first, if their households have made one.
+     */
+    public function forkFor(?User $user): ?self
+    {
+        return $this->forks()->accessibleTo($user)->latest('id')->first();
+    }
+
+    /**
      * The household this recipe belongs to.
      */
     public function household(): BelongsTo

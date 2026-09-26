@@ -119,7 +119,7 @@ return [
         'callout_description' => 'Läs det och laga efter det här. Det är fortfarande deras, så du ser deras senast publicerade version — vill du ändra något gör du en egen version.',
         'fork' => 'Gör en egen version',
         'fork_heading' => 'Göra en egen version?',
-        'fork_description' => 'Du får en kopia av den här versionen som ett privat utkast i ditt hushåll, att ändra hur du vill. Originalet förblir som det är, och din version minns var den kom ifrån.',
+        'fork_description' => 'Du får en kopia av den här versionen som ett privat utkast i ditt hushåll, att ändra hur du vill. Din version tar originalets plats bland era recept; originalet förblir som det är, och din version länkar tillbaka till det.',
         'fork_submit' => 'Gör min version',
         'forked' => [
             'title' => 'Din egen version är klar',

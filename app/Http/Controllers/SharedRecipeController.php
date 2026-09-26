@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Recipes\SaveRecipeToHousehold;
 use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Models\Recipe;
+use App\Models\User;
 use App\Support\PublicLocale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -57,7 +58,7 @@ class SharedRecipeController extends Controller
 
     /**
      * What the save button says to this visitor: sign in first, save it, or — when it is already
-     * theirs or already saved — open it in the app. Nothing at all until something is published.
+     * theirs, already saved or already made into their own version — open that in the app. Nothing at all until something is published.
      *
      * @return array{state: string, url: string}|null
      */
@@ -73,17 +74,22 @@ class SharedRecipeController extends Controller
             return ['state' => 'guest', 'url' => route('recipes.share.sign-in', $recipe->uuid)];
         }
 
-        $state = match (true) {
-            $recipe->isEditableBy($user) => 'own',
-            $recipe->isSavedBy($user) => 'saved',
-            default => 'save',
-        };
+        if ($recipe->isEditableBy($user)) {
+            return ['state' => 'own', 'url' => $this->panelUrl($recipe, $user)];
+        }
 
-        return [
-            'state' => $state,
-            'url' => $state === 'save'
-                ? route('recipes.share.save', $recipe->uuid)
-                : RecipeRevisionResource::getUrl('view', ['record' => $recipe->revisionFor($user)], panel: 'app'),
-        ];
+        // Their own version is what they cook from now, so that is what opens.
+        if ($fork = $recipe->forkFor($user)) {
+            return ['state' => 'forked', 'url' => $this->panelUrl($fork, $user)];
+        }
+
+        return $recipe->isSavedBy($user)
+            ? ['state' => 'saved', 'url' => $this->panelUrl($recipe, $user)]
+            : ['state' => 'save', 'url' => route('recipes.share.save', $recipe->uuid)];
+    }
+
+    private function panelUrl(Recipe $recipe, User $user): string
+    {
+        return RecipeRevisionResource::getUrl('view', ['record' => $recipe->revisionFor($user)], panel: 'app');
     }
 }
