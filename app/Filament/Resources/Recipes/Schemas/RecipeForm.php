@@ -7,6 +7,7 @@ use App\Models\Recipe;
 use App\Support\PageTitleFetcher;
 use App\Support\SupportedLocales;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -81,6 +82,18 @@ class RecipeForm
                                     $set('title', $title);
                                 })
                         )
+                        // Re-renders the import checkbox below as soon as the link changes.
+                        ->live(onBlur: true)
+                        ->columnSpanFull(),
+
+                    // A recipe that is still only a link, given a new one: offer to read the page
+                    // into it. Not a recipe column — EditRecipe takes it out and starts the import.
+                    Checkbox::make('import_from_source')
+                        ->label(__('recipe.fields.import_from_source'))
+                        ->helperText(__('recipe.fields.import_from_source_helper'))
+                        ->default(true)
+                        ->visible(fn (Get $get, ?Recipe $record, string $operation): bool => $operation === 'edit'
+                            && self::offersImport($record, trim((string) $get('source_url'))))
                         ->columnSpanFull(),
 
                     Select::make('default_locale')
@@ -238,6 +251,23 @@ class RecipeForm
                 ]),
             ])->columnSpanFull(),
         ]);
+    }
+
+    /**
+     * Whether saving $url on $record may read the page into it: an API key to read with, a new
+     * link that is a link, and nothing written down yet that an import would land on top of.
+     */
+    public static function offersImport(?Recipe $record, string $url): bool
+    {
+        if (! $record || blank(config('services.anthropic.key'))) {
+            return false;
+        }
+
+        if (! filter_var($url, FILTER_VALIDATE_URL) || $url === (string) $record->source_url) {
+            return false;
+        }
+
+        return $record->displayRevision()?->isLinkOnly() ?? true;
     }
 
     /**

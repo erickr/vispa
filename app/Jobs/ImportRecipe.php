@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\RecipeImport;
+use App\Models\RecipeRevision;
 use App\Models\Unit;
 use App\Models\User;
 use App\Recipes\Import\RecipeExtractor;
@@ -31,14 +32,19 @@ class ImportRecipe implements ShouldQueue
 
     public function __construct(public RecipeImport $import) {}
 
-    /** Record the attempt and queue it; the returned row is what the status page polls. */
-    public static function start(User $user, string $url): RecipeImport
+    /**
+     * Record the attempt and queue it; the returned row is what the status page polls. With
+     * $into, the page fills that link-only revision instead of becoming a new recipe.
+     */
+    public static function start(User $user, string $url, ?RecipeRevision $into = null): RecipeImport
     {
         $import = RecipeImport::create([
             'user_id' => $user->getKey(),
             'source_type' => 'url',
             'source_url' => $url,
             'status' => RecipeImport::STATUS_PENDING,
+            'recipe_id' => $into?->recipe_id,
+            'recipe_revision_id' => $into?->getKey(),
         ]);
 
         static::dispatch($import);
@@ -68,7 +74,13 @@ class ImportRecipe implements ShouldQueue
                 'output_tokens' => $extracted->outputTokens,
             ]);
 
-            $revision = $importer->import($extracted, $import->user, $import->source_url);
+            // A recipe set from the start is the one to fill. Its revision gone by now (deleted
+            // while the job waited) is a failure, not a reason to start a second recipe.
+            $revision = match (true) {
+                $import->recipe_id === null => $importer->import($extracted, $import->user, $import->source_url),
+                $import->revision !== null => $importer->importInto($extracted, $import->revision, $import->user),
+                default => throw new RecipeImportException(__('recipe.import.errors.unexpected')),
+            };
 
             $import->update([
                 'status' => RecipeImport::STATUS_DONE,

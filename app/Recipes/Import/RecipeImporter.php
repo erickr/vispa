@@ -17,7 +17,7 @@ use Throwable;
 
 /**
  * Writes an extracted recipe as a new private recipe with one draft revision, owned by the
- * importing user. Ingredients are matched against what that user can see; anything new becomes
+ * importing user — or, with importInto(), into a recipe that so far is only a saved link. Ingredients are matched against what that user can see; anything new becomes
  * their own private ingredient.
  */
 class RecipeImporter
@@ -71,6 +71,47 @@ class RecipeImporter
         }
 
         return $revision;
+    }
+
+    /**
+     * Fills a recipe that so far is only a link: its revision gets the ingredients, steps and
+     * photo read from the page. What the cook already wrote wins — a title they chose, a
+     * description, servings — and only the gaps are filled. The content goes into the
+     * revision's own locale, as everything on a revision does.
+     *
+     * @throws RecipeImportException when the revision has been written out in the meantime
+     */
+    public function importInto(ExtractedRecipe $extracted, RecipeRevision $revision, User $user): RecipeRevision
+    {
+        if (! $revision->isLinkOnly()) {
+            throw new RecipeImportException(__('recipe.import.errors.not_empty'));
+        }
+
+        $locale = $revision->locale;
+
+        DB::transaction(function () use ($extracted, $revision, $user, $locale): void {
+            $untitled = blank($revision->title) || $revision->title === __('recipe.untitled', locale: $locale);
+
+            $revision->update(array_filter([
+                'title' => $untitled ? $extracted->title : null,
+                'description' => blank($revision->description) ? $extracted->description : null,
+                'notes' => blank($revision->notes) ? $this->notes($extracted, $locale) : null,
+                'source_credit' => blank($revision->source_credit) ? $extracted->sourceCredit : null,
+                'servings' => $revision->servings ?? $extracted->servings,
+                'prep_time_minutes' => $revision->prep_time_minutes ?? $extracted->prepMinutes,
+                'cook_time_minutes' => $revision->cook_time_minutes ?? $extracted->cookMinutes,
+            ], fn ($value): bool => filled($value)));
+
+            $this->writeIngredients($revision, $extracted, $user, $locale);
+            $this->writeSteps($revision, $extracted);
+        });
+
+        // A photo the cook already added stays the cover.
+        if ($extracted->imageUrl && ! $revision->images()->exists()) {
+            $this->attachCover($revision, $extracted->imageUrl);
+        }
+
+        return $revision->refresh();
     }
 
     private function writeIngredients(RecipeRevision $revision, ExtractedRecipe $extracted, User $user, string $locale): void
