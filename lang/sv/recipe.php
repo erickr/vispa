@@ -21,6 +21,7 @@ return [
         'source_url' => 'Länk till originalet',
         'source_url_placeholder' => 'https://www.ica.se/recept/...',
         'source_url_helper' => 'Var det kommer ifrån. Bara en länk räcker som recept — ingredienser och instruktioner är valfria.',
+        'source_url_invalid' => 'Ange en webbadress som börjar med http:// eller https://.',
         'title' => 'Titel',
         'import_from_source' => 'Importera receptet från länken',
         'import_from_source_helper' => 'Vispa läser sidan och fyller i ingredienser, steg och foto som ett utkast. Det du redan skrivit behålls.',

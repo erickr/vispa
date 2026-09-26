@@ -50,6 +50,9 @@ class RecipeForm
                     TextInput::make('source_url')
                         ->label(__('recipe.fields.source_url'))
                         ->url()
+                        // The plain url rule also takes javascript:, data:, ftp: and more.
+                        ->rule('url:http,https')
+                        ->validationMessages(['url' => __('recipe.fields.source_url_invalid')])
                         ->maxLength(500)
                         ->placeholder(__('recipe.fields.source_url_placeholder'))
                         ->helperText(__('recipe.fields.source_url_helper'))

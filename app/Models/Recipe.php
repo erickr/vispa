@@ -187,6 +187,18 @@ class Recipe extends Model
     }
 
     /**
+     * The source link, but only when it is safe to put in an href: an http(s) URL. The form only
+     * accepts those now, yet rows saved before that may hold javascript: or data: links, so
+     * every place that links to the source goes through here rather than reading the column.
+     */
+    public function safeSourceUrl(): ?string
+    {
+        $scheme = $this->source_url ? parse_url($this->source_url, PHP_URL_SCHEME) : null;
+
+        return in_array(strtolower((string) $scheme), ['http', 'https'], true) ? $this->source_url : null;
+    }
+
+    /**
      * A private recipe has no public page at all; unlisted and public both do, the difference
      * being only that nothing links to an unlisted one.
      */

@@ -98,6 +98,58 @@ class RecipeSourceAndPhotosTest extends TestCase
         $this->assertSame("Mormor Ingrid's notebook", $revision->fresh()->source_credit);
     }
 
+    public function test_the_source_link_must_be_a_web_address(): void
+    {
+        $user = $this->owner();
+        $recipe = $this->recipeFor($user);
+        $this->revisionFor($recipe, $user);
+
+        foreach (['javascript:alert(document.cookie)', 'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==', 'ftp://ftp.example.com/recipe.txt'] as $url) {
+            Livewire::test(EditRecipe::class, ['record' => $recipe->getKey()])
+                ->fillForm(['source_url' => $url])
+                ->call('save')
+                ->assertHasFormErrors(['source_url' => 'url']);
+        }
+
+        $this->assertNull($recipe->fresh()->source_url);
+
+        Livewire::test(EditRecipe::class, ['record' => $recipe->getKey()])
+            ->fillForm(['source_url' => 'http://www.koket.se/kanelbullar'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('http://www.koket.se/kanelbullar', $recipe->fresh()->source_url);
+    }
+
+    public function test_only_web_addresses_are_linked_as_the_source(): void
+    {
+        $user = $this->owner();
+
+        $this->assertSame('https://www.ica.se/recept/', $this->recipeFor($user, 'https://www.ica.se/recept/')->safeSourceUrl());
+        $this->assertSame('HTTP://www.ica.se/', $this->recipeFor($user, 'HTTP://www.ica.se/')->safeSourceUrl());
+        $this->assertNull($this->recipeFor($user)->safeSourceUrl());
+        $this->assertNull($this->recipeFor($user, 'javascript:alert(1)')->safeSourceUrl());
+        $this->assertNull($this->recipeFor($user, 'data:text/html,<b>hi</b>')->safeSourceUrl());
+        $this->assertNull($this->recipeFor($user, 'ftp://ftp.example.com/')->safeSourceUrl());
+        $this->assertNull($this->recipeFor($user, '//www.ica.se/recept/')->safeSourceUrl());
+    }
+
+    public function test_a_stored_link_with_another_scheme_is_not_offered_to_open(): void
+    {
+        // Saved before the form only took http(s).
+        $user = $this->owner();
+        $recipe = $this->recipeFor($user, 'javascript:alert(document.cookie)');
+        $revision = $this->revisionFor($recipe, $user, ['status' => 'published', 'published_at' => now()]);
+
+        Livewire::test(ViewRecipeRevision::class, ['record' => $revision->getKey()])
+            ->assertOk()
+            ->assertDontSee('javascript:alert', false);
+
+        Livewire::test(ListRecipes::class)
+            ->assertOk()
+            ->assertDontSee('javascript:alert', false);
+    }
+
     public function test_only_one_photo_can_be_the_cover(): void
     {
         $user = $this->owner();

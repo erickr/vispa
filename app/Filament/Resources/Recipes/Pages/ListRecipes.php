@@ -32,6 +32,8 @@ class ListRecipes extends ListRecords
                         ->label(__('recipe.fields.source_url'))
                         ->placeholder(__('recipe.fields.source_url_placeholder'))
                         ->url()
+                        ->rule('url:http,https')
+                        ->validationMessages(['url' => __('recipe.fields.source_url_invalid')])
                         ->required()
                         ->maxLength(500),
                 ])

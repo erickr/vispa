@@ -78,7 +78,7 @@ class RecipesTable
                 TextColumn::make('source_url')
                     ->label(__('recipe.table.from'))
                     ->formatStateUsing(fn (Recipe $record): string => $record->sourceHost() ?? '—')
-                    ->url(fn (?string $state): ?string => $state)
+                    ->url(fn (Recipe $record): ?string => $record->safeSourceUrl())
                     ->openUrlInNewTab()
                     ->badge()
                     ->color('info')

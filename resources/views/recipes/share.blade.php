@@ -57,9 +57,9 @@
     @endif
 
     @if ($recipe->source_url || $revision->source_credit)
-        <a class="source" @if ($recipe->source_url) href="{{ $recipe->source_url }}" rel="nofollow noopener" @endif>
+        <a class="source" @if ($recipe->safeSourceUrl()) href="{{ $recipe->safeSourceUrl() }}" rel="nofollow noopener" @endif>
             <strong>{{ $revision->source_credit ?: $recipe->sourceHost() }}</strong>
-            @if ($recipe->source_url)
+            @if ($recipe->safeSourceUrl())
                 <span class="muted">· {{ __('share.open_original') }}</span>
             @endif
         </a>

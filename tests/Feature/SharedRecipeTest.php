@@ -86,6 +86,19 @@ class SharedRecipeTest extends TestCase
             ->assertSee('ica.se');
     }
 
+    public function test_a_stored_source_link_that_is_not_a_web_address_is_not_linked(): void
+    {
+        // A value saved before the form only took http(s) links.
+        $recipe = $this->recipe('public', ['source_url' => 'javascript:alert(document.cookie)']);
+        $this->revision($recipe, ['source_credit' => 'Mormor Ingrid']);
+
+        $this->get($recipe->shareUrl())
+            ->assertOk()
+            ->assertSee('Mormor Ingrid')
+            ->assertDontSee('javascript:alert', false)
+            ->assertDontSee(__('share.open_original'));
+    }
+
     public function test_an_unlisted_recipe_is_readable_but_asks_not_to_be_indexed(): void
     {
         $recipe = $this->recipe('unlisted');

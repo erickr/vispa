@@ -236,6 +236,21 @@ class RecipeImportTest extends TestCase
         Queue::assertPushed(ImportRecipe::class, fn (ImportRecipe $job) => $job->import->is($import));
     }
 
+    public function test_the_list_action_only_takes_web_addresses(): void
+    {
+        Queue::fake();
+        $this->actingAs($this->user);
+
+        foreach (['javascript:alert(1)', 'data:text/html,<b>hi</b>', 'ftp://93.184.215.14/recept.txt'] as $url) {
+            Livewire::test(ListRecipes::class)
+                ->callAction('importFromLink', ['url' => $url])
+                ->assertHasActionErrors(['url' => 'url']);
+        }
+
+        $this->assertSame(0, RecipeImport::count());
+        Queue::assertNothingPushed();
+    }
+
     public function test_the_action_is_hidden_without_an_api_key(): void
     {
         config(['services.anthropic.key' => null]);

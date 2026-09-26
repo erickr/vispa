@@ -52,7 +52,8 @@ class RecipeRevisionForm
                         ->label(__('revision.source.open'))
                         ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
                         ->link()
-                        ->url(fn (?RecipeRevision $record): ?string => $record?->recipe?->source_url)
+                        ->url(fn (?RecipeRevision $record): ?string => $record?->recipe?->safeSourceUrl())
+                        ->visible(fn (?RecipeRevision $record): bool => filled($record?->recipe?->safeSourceUrl()))
                         ->openUrlInNewTab(),
                 ])
                 ->columnSpanFull(),
