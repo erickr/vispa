@@ -140,6 +140,54 @@ class RecipeSourceAndPhotosTest extends TestCase
         Storage::disk('public')->assertExists($image->path);
     }
 
+    public function test_an_svg_cannot_be_uploaded_as_a_photo(): void
+    {
+        Storage::fake('public');
+
+        $user = $this->owner();
+        $recipe = $this->recipeFor($user);
+        $revision = $this->revisionFor($recipe, $user, ['title' => 'Kanelbullar']);
+
+        // Photos are served from our own origin, so an SVG's script would run as the app.
+        $svg = UploadedFile::fake()->createWithContent(
+            'rising.svg',
+            '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(document.cookie)</script></svg>',
+        );
+
+        Livewire::test(EditRecipeRevision::class, ['record' => $revision->getKey()])
+            ->fillForm([
+                'images' => [
+                    ['path' => [$svg], 'alt_text' => 'Dough rising'],
+                ],
+            ])
+            ->call('save')
+            ->assertHasErrors();
+
+        $this->assertSame(0, $revision->fresh()->images()->count());
+        $this->assertSame([], Storage::disk('public')->allFiles('recipe-images'));
+    }
+
+    public function test_raster_photos_upload_through_the_editor(): void
+    {
+        Storage::fake('public');
+
+        $user = $this->owner();
+        $recipe = $this->recipeFor($user);
+        $revision = $this->revisionFor($recipe, $user, ['title' => 'Kanelbullar']);
+
+        Livewire::test(EditRecipeRevision::class, ['record' => $revision->getKey()])
+            ->fillForm([
+                'images' => [
+                    ['path' => [UploadedFile::fake()->image('rising.png')], 'alt_text' => 'Dough rising'],
+                    ['path' => [UploadedFile::fake()->image('baked.jpg')], 'alt_text' => 'Out of the oven'],
+                ],
+            ])
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertSame(2, $revision->fresh()->images()->count());
+    }
+
     public function test_a_draft_fork_carries_the_credit_and_the_photos(): void
     {
         $user = $this->owner();
