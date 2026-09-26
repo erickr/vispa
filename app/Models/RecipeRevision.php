@@ -118,10 +118,28 @@ class RecipeRevision extends Model
             ->where('locale', $this->locale)
             ->max('version_number') + 1;
 
+        return $this->copyInto($this->recipe_id, $nextVersion, $createdByUserId);
+    }
+
+    /**
+     * The first draft of someone else's recipe made into your own: $recipe is the new recipe
+     * (see ForkRecipeRevision), and this revision's content becomes its v1 in the same locale.
+     */
+    public function forkInto(Recipe $recipe, ?int $createdByUserId = null): self
+    {
+        return $this->copyInto($recipe->getKey(), 1, $createdByUserId);
+    }
+
+    /**
+     * A draft copy of this revision, with all its content, as $version of $recipeId. Every
+     * revision-scoped table has to be cloned here, or copies silently drop it.
+     */
+    private function copyInto(int $recipeId, int $version, ?int $createdByUserId): self
+    {
         $draft = static::create([
-            'recipe_id' => $this->recipe_id,
+            'recipe_id' => $recipeId,
             'locale' => $this->locale,
-            'version_number' => $nextVersion,
+            'version_number' => $version,
             'status' => 'draft',
             'title' => $this->title,
             'description' => $this->description,

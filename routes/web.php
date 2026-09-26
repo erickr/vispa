@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\AcceptHouseholdInvitation;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\SaveSharedRecipe;
 use App\Http\Controllers\SharedRecipeController;
 use App\Http\Middleware\SetUserLocale;
+use App\Models\Recipe;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', LandingController::class)->name('landing');
@@ -11,6 +13,15 @@ Route::get('/', LandingController::class)->name('landing');
 // Shared by uuid: an unlisted recipe's link has to be unguessable, and the slug table is
 // optional and per locale.
 Route::get('/r/{recipe:uuid}', SharedRecipeController::class)->name('recipes.share');
+
+// Keeps a shared recipe in the visitor's household. A guest is sent to sign in first and comes
+// back to the recipe page (the GET), since a POST cannot be replayed after the login redirect.
+Route::post('/r/{recipe:uuid}/save', SaveSharedRecipe::class)
+    ->middleware(['auth', SetUserLocale::class])
+    ->name('recipes.share.save');
+Route::get('/r/{recipe:uuid}/save', fn (Recipe $recipe) => redirect()->route('recipes.share', $recipe->uuid))
+    ->middleware('auth')
+    ->name('recipes.share.sign-in');
 
 // Jetstream sends guests to `login`; signing in happens in the panel. A guest following an
 // invitation link comes back to it afterwards.

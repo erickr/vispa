@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Recipes\SaveRecipeToHousehold;
+use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Models\Recipe;
+use App\Models\User;
 use App\Support\PublicLocale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -48,7 +51,45 @@ class SharedRecipeController extends Controller
         return view('recipes.share', [
             'recipe' => $recipe,
             'revision' => $revision,
+            'save' => $this->saveState($request, $recipe),
             'languages' => PublicLocale::links('recipes.share', ['recipe' => $recipe->uuid], $locales, $revision->locale),
         ]);
+    }
+
+    /**
+     * What the save button says to this visitor: sign in first, save it, or — when it is already
+     * theirs, already saved or already made into their own version — open that in the app. Nothing at all until something is published.
+     *
+     * @return array{state: string, url: string}|null
+     */
+    private function saveState(Request $request, Recipe $recipe): ?array
+    {
+        if (! SaveRecipeToHousehold::canBeSaved($recipe)) {
+            return null;
+        }
+
+        $user = $request->user();
+
+        if (! $user) {
+            return ['state' => 'guest', 'url' => route('recipes.share.sign-in', $recipe->uuid)];
+        }
+
+        if ($recipe->isEditableBy($user)) {
+            return ['state' => 'own', 'url' => $this->panelUrl($recipe, $user)];
+        }
+
+        // Their own version is what they cook from now, so that is what opens.
+        if ($fork = $recipe->forkFor($user)) {
+            return ['state' => 'forked', 'url' => $this->panelUrl($fork, $user)];
+        }
+
+        return $recipe->isSavedBy($user)
+            ? ['state' => 'saved', 'url' => $this->panelUrl($recipe, $user)]
+            : ['state' => 'save', 'url' => route('recipes.share.save', $recipe->uuid)];
+    }
+
+    private function panelUrl(Recipe $recipe, User $user): string
+    {
+        return RecipeRevisionResource::getUrl('view', ['record' => $recipe->revisionFor($user)], panel: 'app');
     }
 }

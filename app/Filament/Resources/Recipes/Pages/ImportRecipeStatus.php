@@ -47,7 +47,8 @@ class ImportRecipeStatus extends Page
         abort_unless($this->import->status === RecipeImport::STATUS_FAILED, 400);
 
         $this->redirect(RecipeResource::getUrl('import', [
-            'import' => ImportRecipe::start(Auth::user(), $this->import->source_url),
+            // Into the same recipe again, if that is what the failed attempt was filling.
+            'import' => ImportRecipe::start(Auth::user(), $this->import->source_url, $this->import->revision),
         ]));
     }
 

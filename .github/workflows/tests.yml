@@ -1,15 +1,10 @@
 name: Tests
 
-# The platform's test suite. Firmware under src/ is built with PlatformIO and
-# is not covered here, so the workflow only reacts to changes in platform/.
+# The platform's test suite, run on every push to main and every pull request.
 on:
   push:
     branches: [main]
-    paths:
-      - '.github/workflows/tests.yml'
   pull_request:
-    paths:
-      - '.github/workflows/tests.yml'
 
 permissions:
   contents: read
@@ -70,7 +65,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: platform/package-lock.json
+          cache-dependency-path: package-lock.json
 
       # The public pages load their CSS through @vite, so the build manifest
       # has to exist before any test renders one.

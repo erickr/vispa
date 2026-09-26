@@ -17,7 +17,6 @@ use App\Models\Recipe;
 use App\Models\RecipeRevision;
 use App\Models\User;
 use Filament\Facades\Filament;
-use Filament\Forms\Components\Select;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -181,24 +180,32 @@ class HouseholdIsolationTest extends TestCase
     }
 
     #[DataProvider('outsiders')]
-    public function test_the_fork_pickers_do_not_offer_the_other_households_recipes(string $who): void
+    public function test_fork_lineage_cannot_be_submitted_through_the_recipe_form(string $who): void
     {
+        // Lineage is only ever set by "Make my own version" (ForkRecipeRevision), which checks
+        // the user may read what they fork. The form has no such fields, and ignores them if sent.
         [$user, $recipe] = $this->theirs($who);
         $revision = $this->revisionOf($recipe);
+        $own = $who === 'jane' ? $this->doeRecipe : $this->kronaRecipe;
 
         $this->actingAs($user);
 
         Livewire::test(CreateRecipe::class)
-            ->assertFormFieldExists('forked_from_recipe_id', fn (Select $field): bool => ! array_key_exists($recipe->getKey(), $field->getOptions()))
-            ->assertFormFieldExists('forked_from_revision_id', fn (Select $field): bool => ! array_key_exists($revision->getKey(), $field->getOptions()))
-            ->fillForm([
-                'default_locale' => 'en',
-                'visibility' => 'private',
-                'forked_from_recipe_id' => $recipe->getKey(),
-                'forked_from_revision_id' => $revision->getKey(),
-            ])
+            ->assertFormFieldDoesNotExist('forked_from_recipe_id')
+            ->assertFormFieldDoesNotExist('forked_from_revision_id')
+            ->fillForm(['default_locale' => 'en', 'visibility' => 'private', 'title' => 'Planted lineage'])
+            ->set('data.forked_from_recipe_id', $recipe->getKey())
+            ->set('data.forked_from_revision_id', $revision->getKey())
             ->call('create')
-            ->assertHasFormErrors(['forked_from_recipe_id', 'forked_from_revision_id']);
+            ->assertHasNoFormErrors();
+
+        $created = Recipe::whereHas('revisions', fn ($query) => $query->where('title', 'Planted lineage'))->sole();
+        $this->assertNull($created->forked_from_recipe_id);
+        $this->assertNull($created->forked_from_revision_id);
+
+        Livewire::test(EditRecipe::class, ['record' => $own->getKey()])
+            ->assertFormFieldDoesNotExist('forked_from_recipe_id')
+            ->assertFormFieldDoesNotExist('forked_from_revision_id');
     }
 
     #[DataProvider('outsiders')]

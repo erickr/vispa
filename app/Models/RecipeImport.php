@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * One attempt at importing a recipe from somewhere else. The job fills in the outcome; the
- * status page polls it.
+ * status page polls it. recipe_id / recipe_revision_id are the result — or, when set from the
+ * start, the link-only recipe the import is to fill (see ImportRecipe::start()).
  */
 class RecipeImport extends Model
 {

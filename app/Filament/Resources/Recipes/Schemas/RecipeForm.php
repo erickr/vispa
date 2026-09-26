@@ -7,6 +7,7 @@ use App\Models\Recipe;
 use App\Support\PageTitleFetcher;
 use App\Support\SupportedLocales;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -34,36 +35,16 @@ class RecipeForm
             Tabs::make()->tabs([
 
                 Tab::make('recipe')->label(__('recipe.tabs.recipe'))->schema([
-                    Select::make('default_locale')
-                        ->label(__('recipe.fields.default_locale'))
-                        ->options(fn (?Recipe $record): array => SupportedLocales::optionsIncluding($record?->default_locale))
-                        ->default(fn (): string => SupportedLocales::preferred())
-                        ->required()
-                        ->selectablePlaceholder(false)
-                        ->native(false),
-
-                    // Only a question for someone in more than one household; everyone else's recipes
-                    // go to their one household (see Recipe::booted()).
-                    Select::make('household_id')
-                        ->label(__('household.fields.household'))
-                        ->helperText(__('household.fields.household_helper'))
-                        ->options(fn (?Recipe $record): array => self::householdOptions($record))
-                        ->default(fn (): ?int => Auth::user()?->current_household_id)
-                        ->in(fn (?Recipe $record): array => array_keys(self::householdOptions($record)))
-                        ->visible(fn (?Recipe $record): bool => count(self::householdOptions($record)) > 1)
-                        ->selectablePlaceholder(false)
-                        ->native(false),
-
-                    Select::make('visibility')
-                        ->label(__('recipe.fields.visibility'))
-                        ->required()
-                        ->options([
-                            'private' => __('recipe.visibility.private'),
-                            'unlisted' => __('recipe.visibility.unlisted'),
-                            'public' => __('recipe.visibility.public'),
-                        ])
-                        ->default('private')
-                        ->native(false),
+                    // What the recipe is called and where it came from lead; the settings follow.
+                    // The title is not a recipe column: CreateRecipe hands it to the seeded first
+                    // revision.
+                    TextInput::make('title')
+                        ->label(__('recipe.fields.title'))
+                        ->placeholder(__('recipe.untitled'))
+                        ->helperText(__('recipe.fields.title_helper'))
+                        ->maxLength(255)
+                        ->visibleOn('create')
+                        ->columnSpanFull(),
 
                     TextInput::make('source_url')
                         ->label(__('recipe.fields.source_url'))
@@ -72,7 +53,7 @@ class RecipeForm
                         ->placeholder(__('recipe.fields.source_url_placeholder'))
                         ->helperText(__('recipe.fields.source_url_helper'))
                         ->suffixAction(
-                            // Reads the page's heading into the title below, so a saved link has a name.
+                            // Reads the page's heading into the title above, so a saved link has a name.
                             Action::make('fetchTitle')
                                 ->label(__('recipe.actions.fetch_title'))
                                 ->button()
@@ -101,42 +82,50 @@ class RecipeForm
                                     $set('title', $title);
                                 })
                         )
+                        // Re-renders the import checkbox below as soon as the link changes.
+                        ->live(onBlur: true)
                         ->columnSpanFull(),
 
-                    // Not a recipe column: CreateRecipe hands it to the seeded first revision.
-                    TextInput::make('title')
-                        ->label(__('recipe.fields.title'))
-                        ->placeholder(__('recipe.untitled'))
-                        ->helperText(__('recipe.fields.title_helper'))
-                        ->maxLength(255)
-                        ->visibleOn('create')
+                    // A recipe that is still only a link, given a new one: offer to read the page
+                    // into it. Not a recipe column — EditRecipe takes it out and starts the import.
+                    Checkbox::make('import_from_source')
+                        ->label(__('recipe.fields.import_from_source'))
+                        ->helperText(__('recipe.fields.import_from_source_helper'))
+                        ->default(true)
+                        ->visible(fn (Get $get, ?Recipe $record, string $operation): bool => $operation === 'edit'
+                            && self::offersImport($record, trim((string) $get('source_url'))))
                         ->columnSpanFull(),
 
-                    Select::make('forked_from_recipe_id')
-                        ->label(__('recipe.fields.forked_from_recipe'))
-                        ->relationship(
-                            name: 'forkedFromRecipe',
-                            titleAttribute: 'uuid',
-                            // Only recipes this user could open: the picker must not list other
-                            // households' recipes.
-                            modifyQueryUsing: fn ($query, $record) => $query
-                                ->accessibleTo(Auth::user())
-                                ->when($record, fn ($query) => $query->where('id', '!=', $record->id)),
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->nullable(),
+                    Select::make('default_locale')
+                        ->label(__('recipe.fields.default_locale'))
+                        ->options(fn (?Recipe $record): array => SupportedLocales::optionsIncluding($record?->default_locale))
+                        ->default(fn (): string => SupportedLocales::preferred())
+                        ->required()
+                        ->selectablePlaceholder(false)
+                        ->native(false),
 
-                    Select::make('forked_from_revision_id')
-                        ->label(__('recipe.fields.forked_from_revision'))
-                        ->relationship(
-                            name: 'forkedFromRevision',
-                            titleAttribute: 'uuid',
-                            modifyQueryUsing: fn ($query) => $query->whereHas('recipe', fn ($recipes) => $recipes->accessibleTo(Auth::user())),
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->nullable(),
+                    Select::make('visibility')
+                        ->label(__('recipe.fields.visibility'))
+                        ->required()
+                        ->options([
+                            'private' => __('recipe.visibility.private'),
+                            'unlisted' => __('recipe.visibility.unlisted'),
+                            'public' => __('recipe.visibility.public'),
+                        ])
+                        ->default('private')
+                        ->native(false),
+
+                    // Only a question for someone in more than one household; everyone else's recipes
+                    // go to their one household (see Recipe::booted()).
+                    Select::make('household_id')
+                        ->label(__('household.fields.household'))
+                        ->helperText(__('household.fields.household_helper'))
+                        ->options(fn (?Recipe $record): array => self::householdOptions($record))
+                        ->default(fn (): ?int => Auth::user()?->current_household_id)
+                        ->in(fn (?Recipe $record): array => array_keys(self::householdOptions($record)))
+                        ->visible(fn (?Recipe $record): bool => count(self::householdOptions($record)) > 1)
+                        ->selectablePlaceholder(false)
+                        ->native(false),
                 ])->columns(2),
 
                 Tab::make('slugs')->label(__('recipe.tabs.slugs'))->schema([
@@ -262,6 +251,23 @@ class RecipeForm
                 ]),
             ])->columnSpanFull(),
         ]);
+    }
+
+    /**
+     * Whether saving $url on $record may read the page into it: an API key to read with, a new
+     * link that is a link, and nothing written down yet that an import would land on top of.
+     */
+    public static function offersImport(?Recipe $record, string $url): bool
+    {
+        if (! $record || blank(config('services.anthropic.key'))) {
+            return false;
+        }
+
+        if (! filter_var($url, FILTER_VALIDATE_URL) || $url === (string) $record->source_url) {
+            return false;
+        }
+
+        return $record->displayRevision()?->isLinkOnly() ?? true;
     }
 
     /**
