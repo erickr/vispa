@@ -102,7 +102,7 @@ class ClaudeRecipeExtractor implements RecipeExtractor
           copy the original line into raw.
           - unit must be exactly one of these codes, or empty: {$units}.
             Match plural or spelled-out forms to the code ("matskedar" → "msk", "liter" → "liter").
-            If the line's unit is none of these (e.g. "skivor", "klyftor"), leave unit empty and keep
+            If the line's unit is none of these (e.g. "stjälkar", "remsor"), leave unit empty and keep
             the word in preparation_note.
           - ingredient is the plain base name, lowercase, singular where natural, in the recipe's
             language: "1 kg mjölig potatis (ej mandelpotatis)" → quantity 1, unit "kg",

@@ -74,11 +74,16 @@ class RecipeRevisionIngredient extends Model
         return $value === '' ? null : $value;
     }
 
-    public function line(): string
+    /**
+     * The unit reads in the revision's locale; pass it when the caller already has it at hand.
+     */
+    public function line(?string $locale = null): string
     {
+        $locale ??= $this->revision?->locale;
+
         return static::formatLine(
             static::formatQuantity($this->quantity),
-            $this->unit?->code,
+            $locale ? $this->unit?->abbreviationFor($locale) : $this->unit?->code,
             $this->ingredient?->canonical_name,
             $this->preparation_note,
             (bool) $this->optional,

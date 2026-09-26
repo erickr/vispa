@@ -42,7 +42,7 @@ class SharedRecipeController extends Controller
         $revision->load([
             'ingredientGroups',
             'ingredients.ingredient.translations',
-            'ingredients.unit',
+            'ingredients.unit.translations',
             'instructionSections',
             'instructionSteps',
             'images',
