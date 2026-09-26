@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project: Vispa Platform
 
-Laravel 13 app (PHP 8.3+) using **Filament 4** as the admin/app panel. Domain is a versioned, localizable recipe system. Dev environment runs through Laravel Sail (Docker: MySQL 8.4 + Redis + a PHP runtime container).
+Laravel 13 app (PHP 8.5+) using **Filament 4** as the admin/app panel. Domain is a versioned, localizable recipe system. Dev environment runs through Laravel Sail (Docker: MySQL 8.4 + Redis + a PHP runtime container).
 
 ## Commands
 
