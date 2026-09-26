@@ -6,9 +6,15 @@ use App\Http\Controllers\SaveSharedRecipe;
 use App\Http\Controllers\SharedRecipeController;
 use App\Http\Middleware\SetUserLocale;
 use App\Models\Recipe;
+use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', LandingController::class)->name('landing');
+
+// Signed in is not enough outside the panel either: an unverified address is sent to the panel's
+// own prompt (Laravel's default, `verification.notice`, is Fortify's and is off). The redirect
+// remembers where they were headed, and verifying lands them back there.
+$verified = EnsureEmailIsVerified::redirectTo('filament.app.auth.email-verification.prompt');
 
 // Shared by uuid: an unlisted recipe's link has to be unguessable, and the slug table is
 // optional and per locale.
@@ -17,10 +23,10 @@ Route::get('/r/{recipe:uuid}', SharedRecipeController::class)->name('recipes.sha
 // Keeps a shared recipe in the visitor's household. A guest is sent to sign in first and comes
 // back to the recipe page (the GET), since a POST cannot be replayed after the login redirect.
 Route::post('/r/{recipe:uuid}/save', SaveSharedRecipe::class)
-    ->middleware(['auth', SetUserLocale::class])
+    ->middleware(['auth', $verified, SetUserLocale::class])
     ->name('recipes.share.save');
 Route::get('/r/{recipe:uuid}/save', fn (Recipe $recipe) => redirect()->route('recipes.share', $recipe->uuid))
-    ->middleware('auth')
+    ->middleware(['auth', $verified])
     ->name('recipes.share.sign-in');
 
 // Jetstream sends guests to `login`; signing in happens in the panel. A guest following an
@@ -29,7 +35,7 @@ Route::redirect('/login', '/app/login')->name('login');
 
 // Our accept route, which HouseholdInvitationMail links to (see the controller for why).
 Route::get('/households/invitations/{invitation}', AcceptHouseholdInvitation::class)
-    ->middleware(['auth', 'signed', SetUserLocale::class])
+    ->middleware(['auth', 'signed', $verified, SetUserLocale::class])
     ->name('households.invitations.accept');
 
 // Jetstream's own pages are replaced by the panel's household page and profile; its URIs are

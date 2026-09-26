@@ -34,6 +34,12 @@ class AppPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/app/theme.css')
             ->login()
             ->registration()
+            // Registration is open, so an account has to prove its address before it can do
+            // anything, above all start paid imports. The change check sends a new address a
+            // link and keeps the old one until it is clicked — the catalog admin is known by
+            // email, so an address must not be claimed by typing it in.
+            ->emailVerification()
+            ->emailChangeVerification()
             ->profile(EditProfile::class, isSimple: false)
             ->brandName('Vispa')
             ->brandLogo(fn () => view('filament.brand'))

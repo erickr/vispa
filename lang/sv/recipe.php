@@ -68,6 +68,10 @@ return [
             'done' => 'Klart — öppnar receptet…',
             'failed' => 'Importen fungerade inte',
         ],
+        'limited' => [
+            'title' => 'Importgränsen är nådd',
+            'body' => 'Du har importerat många recept på kort tid. Du kan importera igen om :time.',
+        ],
         'retry' => 'Försök igen',
         'back' => 'Tillbaka till recepten',
         'total_time' => 'Total tid: :minutes min.',
@@ -106,6 +110,8 @@ return [
             'no_url' => 'Ange en giltig länk först',
             'not_found' => 'Hittade ingen titel på sidan',
             'not_found_body' => 'Sidan gick inte att läsa, eller saknar rubrik. Skriv titeln själv.',
+            'limited' => 'För många hämtningar just nu',
+            'limited_body' => 'Skriv titeln själv, eller försök med knappen igen om en stund.',
         ],
         'save_first' => [
             'title' => 'Spara receptet först',

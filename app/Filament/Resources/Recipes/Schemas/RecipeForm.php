@@ -23,6 +23,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Component;
 
 class RecipeForm
@@ -67,6 +68,21 @@ class RecipeForm
                                         return;
                                     }
 
+                                    // The server fetches the page, so each user gets a handful an hour
+                                    // rather than a free proxy. Over it, they type the title themselves.
+                                    $limitKey = 'page-title-fetches:'.Auth::id();
+
+                                    if (RateLimiter::tooManyAttempts($limitKey, (int) config('services.page_titles.fetches_per_hour'))) {
+                                        Notification::make()
+                                            ->title(__('recipe.notifications.fetch_title.limited'))
+                                            ->body(__('recipe.notifications.fetch_title.limited_body'))
+                                            ->warning()
+                                            ->send();
+
+                                        return;
+                                    }
+
+                                    RateLimiter::hit($limitKey, 3600);
                                     $title = app(PageTitleFetcher::class)->fetch($url);
 
                                     if ($title === null) {

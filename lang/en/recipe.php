@@ -70,6 +70,10 @@ return [
             'done' => 'Done — opening the recipe…',
             'failed' => 'The import didn’t work',
         ],
+        'limited' => [
+            'title' => 'Import limit reached',
+            'body' => 'You have imported a lot of recipes in a short time. You can import again in :time.',
+        ],
         'retry' => 'Try again',
         'back' => 'Back to recipes',
         'total_time' => 'Total time: :minutes min.',
@@ -108,6 +112,8 @@ return [
             'no_url' => 'Enter a valid link first',
             'not_found' => 'Couldn’t find a title on that page',
             'not_found_body' => 'The page couldn’t be read, or it has no heading. Type the title yourself.',
+            'limited' => 'Too many lookups for now',
+            'limited_body' => 'Type the title yourself, or try the button again in a while.',
         ],
         'save_first' => [
             'title' => 'Save the recipe first',
