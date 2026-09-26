@@ -23,8 +23,6 @@ return [
         'source_url_helper' => 'Var det kommer ifrån. Bara en länk räcker som recept — ingredienser och instruktioner är valfria.',
         'title' => 'Titel',
         'title_helper' => 'Blir titeln på den första revisionen. Lämna tomt för att namnge det senare.',
-        'forked_from_recipe' => 'Förgrenat från recept',
-        'forked_from_revision' => 'Förgrenat från revision',
         'locale' => 'Språk',
         'slug' => 'Länknamn',
         'is_primary' => 'Primärt',

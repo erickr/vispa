@@ -25,8 +25,6 @@ return [
         'source_url_helper' => 'Where it came from. A link on its own is a complete recipe — ingredients and instructions are optional.',
         'title' => 'Title',
         'title_helper' => 'Becomes the title of the first revision. Leave it empty to name it later.',
-        'forked_from_recipe' => 'Forked from recipe',
-        'forked_from_revision' => 'Forked from revision',
         'locale' => 'Locale',
         'slug' => 'Slug',
         'is_primary' => 'Primary',
