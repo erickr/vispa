@@ -1,9 +1,16 @@
 name: Tests & deploy
 
 # The platform's test suite, run on every push to main and every pull request.
-# A push to main that passes the suite is then deployed by the `deploy` job, so
-# a red commit never reaches production. Running this workflow by hand also
-# runs the suite first; there is no way to deploy without it.
+# A push to main that passes the suite is then built by the `build` job and
+# shipped by the `deploy` job, so a red commit never reaches production.
+# Running this workflow by hand also runs the suite first; there is no way to
+# deploy without it.
+#
+# Building and shipping are separate jobs on purpose: `build` runs third-party
+# code (Composer scripts, npm packages, setup actions) with a read-only token
+# and no secrets, and `deploy` runs none of it while it holds the write token
+# and the server's SSH key. Every action is pinned to a commit SHA so a moved
+# tag cannot swap in different code.
 on:
   push:
     branches: [main]
@@ -65,7 +72,7 @@ jobs:
           php artisan key:generate
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -81,32 +88,27 @@ jobs:
       - name: Execute tests
         run: php artisan test
 
-  deploy:
+  build:
     runs-on: ubuntu-latest
     # Only after the suite is green, and never for a pull request.
     needs: tests
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
 
-    # Needed to force-push the built assets to the `deploy` branch.
+    # Everything here is third-party code, so it gets a read-only token, no
+    # persisted git credentials and no secrets. Its only output is public/.
     permissions:
-      contents: write
-
-    # Two deploys never run at once; a newer one waits for the running one
-    # instead of cancelling it halfway through the server-side steps.
-    concurrency:
-      group: deploy-production
-      cancel-in-progress: false
+      contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Full history: `git push -f` out of a shallow clone is rejected.
-          fetch-depth: 0
+          persist-credentials: false
 
       # Matches the tests job so the deployed build runs on the version the
       # suite was green against.
       - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: 8.5
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, mysql, pdo_mysql, intl
@@ -119,7 +121,7 @@ jobs:
 
       # Vite 8 requires Node 20+.
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -129,6 +131,58 @@ jobs:
         run: |
           npm ci
           npm run build
+
+      # The whole of public/, tracked files included, so the deploy job can
+      # replace its public/ with exactly what was built here. Hidden files are
+      # included so .htaccess (and anything a build tool names with a dot)
+      # makes the trip too.
+      - name: Upload built public/
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: public
+          path: public/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+
+    # Needed to force-push the built assets to the `deploy` branch.
+    permissions:
+      contents: write
+
+    # The environment's protection rules (deployment branches, reviewers) and
+    # its secrets apply to this job only.
+    environment: production
+
+    # Two deploys never run at once; a newer one waits for the running one
+    # instead of cancelling it halfway through the server-side steps.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+
+    # No PHP, Composer, Node or npm here: this job holds the write token and
+    # the SSH key, so it runs only git, ssh and GitHub's own actions.
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history: `git push -f` out of a shallow clone is rejected.
+          fetch-depth: 0
+
+      # Clearing public/ first means a file the build removed is removed from
+      # the deploy branch too, as it was when this job built in place.
+      - name: Clear public/
+        run: rm -rf public
+
+      - name: Download built public/
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: public
+          path: public
 
       # public/build and the published Filament assets are gitignored
       # for local work, so they need -f to make it onto the deploy branch. The
@@ -142,14 +196,24 @@ jobs:
           git commit -m "Preparing release (frontend assets built): $(date)"
           git push -f origin deploy
 
+      # The key comes in through env so it is never pasted into the script
+      # text. The server's host key is pinned by the SSH_KNOWN_HOSTS secret
+      # instead of trusting whatever answers ssh-keyscan at deploy time.
       - name: Setup SSH Keys and known_hosts
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
+          if [ -z "$SSH_KNOWN_HOSTS" ]; then
+            echo "::error::The SSH_KNOWN_HOSTS secret is empty or missing. Set it to the verified output of 'ssh-keyscan server10.serverdrift.com'."
+            exit 1
+          fi
+          ssh-agent -a "$SSH_AUTH_SOCK" > /dev/null
+          ssh-add - <<< "$SSH_PRIVATE_KEY"
           mkdir -p ~/.ssh/
-          ssh-keyscan server10.serverdrift.com >> ~/.ssh/known_hosts
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
           ssh itomat@server10.serverdrift.com -C whoami
           scp deploy/server_deploy.sh itomat@server10.serverdrift.com:vispa.itomat.se/
           ssh itomat@server10.serverdrift.com -C "chmod +x vispa.itomat.se/server_deploy.sh"
