@@ -115,9 +115,11 @@ jobs:
           coverage: none
 
       # Also runs filament:upgrade via post-autoload-dump, which publishes
-      # Filament's assets into public/.
+      # Filament's assets into public/. Only public/ leaves this job, and
+      # Filament is a production dependency, so the dev packages are skipped
+      # here as they are on the server.
       - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
       # Vite 8 requires Node 20+.
       - name: Set up Node

@@ -9,8 +9,10 @@ echo "Deploying application ..."
     git fetch origin deploy
     git reset --hard origin/deploy
 
-    # Install dependencies based on lock file
-    composer install --no-interaction --prefer-dist --optimize-autoloader
+    # Install dependencies based on lock file. --no-dev leaves out the test and
+    # tooling packages (Faker, Pail, Sail, PHPUnit, ...); nothing the app runs
+    # in production uses them.
+    composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
     # Migrate database
     php artisan migrate --force
