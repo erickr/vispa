@@ -5,6 +5,7 @@ namespace App\Filament\Resources\RecipeRevisions\Schemas;
 use App\Filament\Resources\Ingredients\Schemas\IngredientForm;
 use App\Models\Ingredient;
 use App\Models\RecipeRevision;
+use App\Models\RecipeRevisionImage;
 use App\Models\RecipeRevisionIngredient;
 use App\Models\Unit;
 use App\Support\SupportedLocales;
@@ -266,6 +267,8 @@ class RecipeRevisionForm
                             FileUpload::make('path')
                                 ->hiddenLabel()
                                 ->image()
+                                // image() alone accepts image/*, which lets SVG (and its script) through.
+                                ->acceptedFileTypes(array_keys(RecipeRevisionImage::ALLOWED_TYPES))
                                 ->imageEditor()
                                 ->disk('public')
                                 ->directory('recipe-images')

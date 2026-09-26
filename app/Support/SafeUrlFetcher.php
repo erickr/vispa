@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\RecipeRevisionImage;
 use GuzzleHttp\Psr7\Uri;
 use GuzzleHttp\Psr7\UriResolver;
 use Illuminate\Support\Facades\Http;
@@ -64,13 +65,7 @@ class SafeUrlFetcher
         ['response' => $response, 'body' => $bytes] = $this->get($url, self::MAX_IMAGE_BYTES, strict: true);
         $type = strtolower(trim(explode(';', $response->getHeaderLine('Content-Type'))[0]));
 
-        $extension = [
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-            'image/webp' => 'webp',
-            'image/gif' => 'gif',
-            'image/avif' => 'avif',
-        ][$type] ?? null;
+        $extension = RecipeRevisionImage::ALLOWED_TYPES[$type] ?? null;
 
         if ($extension === null) {
             throw new RuntimeException("Not an image ({$type}).");
