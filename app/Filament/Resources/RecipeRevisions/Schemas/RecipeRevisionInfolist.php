@@ -136,7 +136,7 @@ class RecipeRevisionInfolist
                                 ->schema([
                                     TextEntry::make('line')
                                         ->hiddenLabel()
-                                        ->state(fn (RecipeRevisionIngredient $record): string => $record->line()),
+                                        ->state(fn (RecipeRevisionIngredient $record, $livewire): string => $record->line($livewire->getRecord()->locale)),
                                 ]),
                         ]),
                 ]),

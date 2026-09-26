@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Units\Tables;
 
+use App\Models\Unit;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -13,8 +14,12 @@ class UnitsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with('translations'))
             ->columns([
                 TextColumn::make('code')->label(__('unit.fields.code'))->searchable()->sortable(),
+                TextColumn::make('name')
+                    ->label(__('unit.fields.name'))
+                    ->state(fn (Unit $record): string => $record->labelFor(app()->getLocale())),
                 TextColumn::make('type')
                     ->label(__('unit.fields.type'))
                     ->badge()

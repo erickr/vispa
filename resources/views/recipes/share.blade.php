@@ -80,7 +80,7 @@
                 @foreach ($lines as $line)
                     <li>{{ RecipeRevisionIngredient::formatLine(
                         RecipeRevisionIngredient::formatQuantity($line->quantity),
-                        $line->unit?->code,
+                        $line->unit?->abbreviationFor($revision->locale),
                         $line->ingredient?->nameFor($revision->locale, $recipe->default_locale),
                         $line->preparation_note,
                         (bool) $line->optional,
@@ -94,7 +94,7 @@
                 @foreach ($ungroupedIngredients as $line)
                     <li>{{ RecipeRevisionIngredient::formatLine(
                         RecipeRevisionIngredient::formatQuantity($line->quantity),
-                        $line->unit?->code,
+                        $line->unit?->abbreviationFor($revision->locale),
                         $line->ingredient?->nameFor($revision->locale, $recipe->default_locale),
                         $line->preparation_note,
                         (bool) $line->optional,

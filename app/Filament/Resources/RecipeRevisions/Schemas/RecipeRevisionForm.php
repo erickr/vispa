@@ -31,8 +31,8 @@ class RecipeRevisionForm
     /** @var array<int, string>|null Ingredient names, primed once per request for the line labels. */
     protected static ?array $ingredientNames = null;
 
-    /** @var array<int, string>|null Unit codes, same. */
-    protected static ?array $unitCodes = null;
+    /** @var array<int, Unit>|null Units with their translations, same. */
+    protected static ?array $units = null;
 
     public static function configure(Schema $schema): Schema
     {
@@ -139,7 +139,8 @@ class RecipeRevisionForm
 
                                     Select::make('unit_id')
                                         ->label(__('revision.fields.unit'))
-                                        ->relationship('unit', 'code')
+                                        // Named in the revision's locale; the search runs over these labels.
+                                        ->options(fn (Component $livewire): array => self::unitOptions(self::locale($livewire)))
                                         ->searchable()
                                         ->preload()
                                         ->nullable(),
@@ -190,7 +191,7 @@ class RecipeRevisionForm
                                 // Expanding one gives back the amount / unit / ingredient fields.
                                 ->collapsible()
                                 ->collapsed()
-                                ->itemLabel(fn (array $state): string => self::ingredientLine($state))
+                                ->itemLabel(fn (array $state, Component $livewire): string => self::ingredientLine($state, self::locale($livewire)))
                                 ->addActionLabel(__('revision.actions.add_ingredient'))
                                 ->defaultItems(0),
                         ])
@@ -308,7 +309,7 @@ class RecipeRevisionForm
     /**
      * A collapsed ingredient row, written the way it reads on paper: "150 g butter, softened".
      */
-    public static function ingredientLine(array $state): string
+    public static function ingredientLine(array $state, ?string $locale = null): string
     {
         $name = self::ingredientName($state['ingredient_id'] ?? null);
 
@@ -318,7 +319,7 @@ class RecipeRevisionForm
 
         return RecipeRevisionIngredient::formatLine(
             RecipeRevisionIngredient::formatQuantity($state['quantity'] ?? null),
-            self::unitCode($state['unit_id'] ?? null),
+            self::unitAbbreviation($state['unit_id'] ?? null, $locale),
             $name,
             $state['preparation_note'] ?? null,
             (bool) ($state['optional'] ?? false),
@@ -341,15 +342,51 @@ class RecipeRevisionForm
         return self::$ingredientNames[$id] ??= Ingredient::query()->whereKey($id)->value('canonical_name');
     }
 
-    protected static function unitCode(mixed $id): ?string
+    protected static function unitAbbreviation(mixed $id, ?string $locale): ?string
     {
         if (blank($id)) {
             return null;
         }
 
-        self::$unitCodes ??= Unit::query()->pluck('code', 'id')->all();
+        $unit = self::unit($id);
 
-        return self::$unitCodes[$id] ??= Unit::query()->whereKey($id)->value('code');
+        return $locale ? $unit?->abbreviationFor($locale) : $unit?->code;
+    }
+
+    /**
+     * @return array<int, string> unit id => "tbsp (tablespoon)"
+     */
+    public static function unitOptions(?string $locale): array
+    {
+        return collect(self::units())
+            ->map(fn (Unit $unit): string => $locale ? $unit->labelFor($locale) : $unit->code)
+            ->sort()
+            ->all();
+    }
+
+    /**
+     * @return array<int, Unit>
+     */
+    protected static function units(): array
+    {
+        return self::$units ??= Unit::query()->with('translations')->get()->keyBy('id')->all();
+    }
+
+    protected static function unit(mixed $id): ?Unit
+    {
+        self::units();
+
+        return self::$units[$id] ??= Unit::query()->with('translations')->find($id);
+    }
+
+    /**
+     * The locale of the revision being edited, which the unit names follow.
+     */
+    protected static function locale(Component $livewire): ?string
+    {
+        $record = method_exists($livewire, 'getRecord') ? $livewire->getRecord() : null;
+
+        return $record instanceof RecipeRevision ? $record->locale : null;
     }
 
     /**
