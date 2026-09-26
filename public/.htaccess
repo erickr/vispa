@@ -23,3 +23,19 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Security headers for what Apache serves itself. Laravel's SecurityHeaders middleware covers
+# every page, but files under /storage (uploaded photos, via the storage:link symlink) never
+# reach PHP. Needs mod_headers and Apache 2.4 (for <If>).
+<IfModule mod_headers.c>
+    # Everywhere. The onsuccess unset drops the copy PHP already sent, so a page does not end up
+    # with the header twice ("always" and "onsuccess" are separate header tables in Apache).
+    Header onsuccess unset X-Content-Type-Options
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Uploads are meant to be images, but should anything else slip through (an SVG, an HTML
+    # file), the sandbox keeps it from running script or reading cookies in our origin.
+    <If "%{REQUEST_URI} =~ m#^/storage/#">
+        Header always set Content-Security-Policy "sandbox; default-src 'none'; img-src 'self'; style-src 'unsafe-inline'"
+    </If>
+</IfModule>
