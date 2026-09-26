@@ -57,9 +57,13 @@ class RecipeResource extends Resource
         return RecipesTable::configure($table);
     }
 
+    /**
+     * Everything the user can open, saved recipes included. Those are read-only, which is
+     * RecipePolicy's to enforce: the edit page and delete refuse them.
+     */
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->accessibleTo(Auth::user());
+        return parent::getEloquentQuery()->viewableBy(Auth::user());
     }
 
     public static function getRelations(): array

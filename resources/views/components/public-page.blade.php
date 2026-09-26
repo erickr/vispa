@@ -42,6 +42,11 @@
             border: 1px solid var(--line); background: var(--card); }
             .source { display: block; padding: 0.9rem 1.1rem; border: 1px solid var(--line); border-left: 3px solid var(--accent);
             border-radius: 0.6rem; background: var(--card); margin-bottom: 1.5rem; text-decoration: none; color: inherit; }
+            .save { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-bottom: 1.5rem; }
+            .save form { margin: 0; }
+            .save a, .save button { padding: 0.5rem 1.2rem; border-radius: 0.5rem; font: inherit; font-weight: 600;
+            text-decoration: none; cursor: pointer; border: 2px solid var(--accent); color: var(--accent); background: none; }
+            .save .primary { background: var(--accent); color: #fff; }
             ul.ingredients { list-style: none; padding: 0; margin: 0; }
             ul.ingredients li { padding: 0.4rem 0; border-bottom: 1px solid var(--line); }
             ol.steps { padding-left: 1.4rem; margin: 0; }

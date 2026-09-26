@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RecipeRevisions\Schemas;
 
+use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Models\RecipeRevision;
 use App\Models\RecipeRevisionIngredient;
 use App\Models\RecipeRevisionInstructionStep;
@@ -17,6 +18,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 
 class RecipeRevisionInfolist
@@ -24,6 +26,32 @@ class RecipeRevisionInfolist
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
+
+            // Saved from another household: theirs to change, the reader's to cook from.
+            Callout::make(__('recipe.saved.callout_heading'))
+                ->description(__('recipe.saved.callout_description'))
+                ->icon(Heroicon::OutlinedBookmark)
+                ->color('info')
+                ->visible(fn (RecipeRevision $record): bool => ! self::canChange($record))
+                ->columnSpanFull(),
+
+            // A version of someone else's recipe: the way back to what it started from, while
+            // the reader can still open that.
+            Callout::make(fn (RecipeRevision $record): string => __('recipe.saved.based_on', [
+                'title' => $record->recipe->forkedFromRevision?->title ?? '',
+            ]))
+                ->icon(Heroicon::OutlinedDocumentDuplicate)
+                ->color('gray')
+                ->visible(fn (RecipeRevision $record): bool => self::originalFor($record) !== null)
+                ->footerActions([
+                    Action::make('openOriginal')
+                        ->label(__('recipe.saved.open_original'))
+                        ->link()
+                        ->url(fn (RecipeRevision $record): ?string => ($original = self::originalFor($record))
+                            ? RecipeRevisionResource::getUrl('view', ['record' => $original])
+                            : null),
+                ])
+                ->columnSpanFull(),
 
             // Where it came from, first — for a saved link this is the recipe.
             Callout::make(fn (RecipeRevision $record): string => $record->recipe?->sourceHost() ?? __('revision.source.saved_link'))
@@ -182,6 +210,8 @@ class RecipeRevisionInfolist
                             'current' => $record,
                             'revisions' => $record->recipe
                                 ->revisions()
+                                // Someone who only saved it sees what its owners published.
+                                ->when(! self::canChange($record), fn ($query) => $query->where('status', 'published'))
                                 ->orderByRaw('(locale = ?) desc', [$record->locale])
                                 ->orderBy('locale')
                                 ->orderByDesc('version_number')
@@ -190,5 +220,21 @@ class RecipeRevisionInfolist
                         ->columnSpanFull(),
                 ]),
         ])->columns(1);
+    }
+
+    private static function canChange(RecipeRevision $record): bool
+    {
+        return Auth::user()?->can('update', $record) ?? false;
+    }
+
+    /**
+     * The revision this recipe was forked from, if the reader may open it: newer published
+     * versions are not followed — the fork started from this one.
+     */
+    private static function originalFor(RecipeRevision $record): ?RecipeRevision
+    {
+        $original = $record->recipe->forkedFromRevision;
+
+        return $original && Auth::user()?->can('view', $original) ? $original : null;
     }
 }

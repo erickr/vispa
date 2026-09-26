@@ -37,24 +37,34 @@ class RecipesTable
                     ->height(52)
                     ->width(52)
                     ->extraImgAttributes(['class' => 'rounded-lg object-cover'])
-                    ->state(fn (Recipe $record): ?string => $record->displayRevision()?->coverImage()?->path),
+                    ->state(fn (Recipe $record): ?string => self::revision($record)?->coverImage()?->path),
 
                 TextColumn::make('title')
                     ->label(__('recipe.table.recipe'))
                     ->weight(FontWeight::Bold)
                     ->size(TextSize::Large)
-                    ->state(fn (Recipe $record): string => $record->displayRevision()?->title ?? __('recipe.table.untitled'))
+                    ->state(fn (Recipe $record): string => self::revision($record)?->title ?? __('recipe.table.untitled'))
                     ->description(fn (Recipe $record): string => self::summary($record))
-                    // The title lives on the revision, so search has to reach through the relation.
+                    // The title lives on the revision, so search has to reach through the relation
+                    // — and, for a saved recipe, only as far as its published revisions: the
+                    // owners' drafts are not the searcher's to find.
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query
-                        ->whereHas('revisions', fn (Builder $revisions) => $revisions->where('title', 'like', "%{$search}%"))
+                        ->whereHas('revisions', fn (Builder $revisions) => $revisions
+                            ->where('title', 'like', "%{$search}%")
+                            ->where(fn (Builder $revisions) => $revisions
+                                ->where('status', 'published')
+                                ->orWhereHas('recipe', fn (Builder $recipes) => $recipes->accessibleTo(Auth::user()))))
                         ->orWhere('source_url', 'like', "%{$search}%")),
 
                 TextColumn::make('status')
                     ->label(__('revision.fields.status'))
                     ->badge()
-                    ->state(fn (Recipe $record): ?string => RecipeRevision::statusWord($record->displayRevision()?->status))
-                    ->color(fn (Recipe $record): string => match ($record->displayRevision()?->status) {
+                    // A saved recipe is always a published one; what matters is that it is not
+                    // yours to change.
+                    ->state(fn (Recipe $record): ?string => self::isSaved($record)
+                        ? __('recipe.saved.badge')
+                        : RecipeRevision::statusWord($record->displayRevision()?->status))
+                    ->color(fn (Recipe $record): string => self::isSaved($record) ? 'info' : match ($record->displayRevision()?->status) {
                         'published' => 'success',
                         'draft' => 'warning',
                         default => 'gray',
@@ -74,6 +84,8 @@ class RecipesTable
                 // to someone in several.
                 TextColumn::make('household.name')
                     ->label(__('household.fields.household'))
+                    // A saved recipe's household is its owners', which is not the reader's business.
+                    ->state(fn (Recipe $record): ?string => self::isSaved($record) ? null : $record->household?->name)
                     ->visible(fn (): bool => self::inSeveralHouseholds())
                     ->placeholder('—'),
 
@@ -97,6 +109,13 @@ class RecipesTable
                 SelectFilter::make('household_id')
                     ->label(__('household.fields.household'))
                     ->options(fn (): array => Auth::user()?->allTeams()->pluck('name', 'id')->all() ?? [])
+                    // A household's recipes are the ones it has and the ones it saved.
+                    ->query(fn (Builder $query, array $data): Builder => $query->when(
+                        filled($data['value'] ?? null),
+                        fn (Builder $query) => $query->where(fn (Builder $query) => $query
+                            ->where('household_id', $data['value'])
+                            ->orWhereHas('savedByHouseholds', fn (Builder $households) => $households->whereKey($data['value']))),
+                    ))
                     ->visible(fn (): bool => self::inSeveralHouseholds()),
                 SelectFilter::make('visibility')
                     ->label(__('recipe.fields.visibility'))
@@ -105,6 +124,9 @@ class RecipesTable
                         'unlisted' => __('recipe.visibility.unlisted'),
                         'public' => __('recipe.visibility.public'),
                     ]),
+                Filter::make('saved_from_others')
+                    ->label(__('recipe.table.only_saved_from_others'))
+                    ->query(fn (Builder $query): Builder => $query->savedBy(Auth::user())),
                 Filter::make('saved_links')
                     ->label(__('recipe.table.only_saved_links'))
                     ->query(fn (Builder $query): Builder => $query->whereNotNull('source_url')),
@@ -119,7 +141,8 @@ class RecipesTable
             ->emptyStateIcon(Heroicon::OutlinedBookOpen)
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    // Saved recipes are someone else's; RecipePolicy turns those away one by one.
+                    DeleteBulkAction::make()->authorizeIndividualRecords('delete'),
                 ]),
             ]);
     }
@@ -130,7 +153,7 @@ class RecipesTable
      */
     private static function summary(Recipe $record): string
     {
-        $revision = $record->displayRevision();
+        $revision = self::revision($record);
 
         if (! $revision) {
             return __('recipe.summary.nothing_yet');
@@ -159,9 +182,23 @@ class RecipesTable
         return (Auth::user()?->allTeams()->count() ?? 0) > 1;
     }
 
+    /**
+     * The revision a row stands for: the household's newest work, or for a saved recipe the
+     * published version in the reader's language.
+     */
+    private static function revision(Recipe $record): ?RecipeRevision
+    {
+        return $record->revisionFor(Auth::user());
+    }
+
+    private static function isSaved(Recipe $record): bool
+    {
+        return ! $record->isEditableBy(Auth::user());
+    }
+
     private static function viewUrl(Recipe $record): ?string
     {
-        $revision = $record->displayRevision();
+        $revision = self::revision($record);
 
         return $revision
             ? RecipeRevisionResource::getUrl('view', ['record' => $revision])
@@ -170,6 +207,10 @@ class RecipesTable
 
     private static function editContentUrl(Recipe $record): ?string
     {
+        if (self::isSaved($record)) {
+            return null;
+        }
+
         $revision = $record->revisions->sortByDesc('version_number')->first();
 
         return $revision

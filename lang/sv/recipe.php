@@ -112,6 +112,32 @@ return [
         ],
     ],
 
+    // Ett annat hushålls publicerade recept, sparat bland det här hushållets recept.
+    'saved' => [
+        'badge' => 'Sparat',
+        'callout_heading' => 'Sparat från ett annat hushåll',
+        'callout_description' => 'Läs det och laga efter det här. Det är fortfarande deras, så du ser deras senast publicerade version — vill du ändra något gör du en egen version.',
+        'fork' => 'Gör en egen version',
+        'fork_heading' => 'Göra en egen version?',
+        'fork_description' => 'Du får en kopia av den här versionen som ett privat utkast i ditt hushåll, att ändra hur du vill. Originalet förblir som det är, och din version minns var den kom ifrån.',
+        'fork_submit' => 'Gör min version',
+        'forked' => [
+            'title' => 'Din egen version är klar',
+            'body' => 'Den är ett privat utkast i ditt hushåll — ändra det du vill och publicera när den är klar.',
+        ],
+        'remove' => 'Ta bort från våra recept',
+        'remove_heading' => 'Ta bort från era recept?',
+        'remove_description' => 'Det försvinner från hushållets recept. Versioner du gjort av det förblir dina.',
+        'remove_submit' => 'Ta bort',
+        'removed' => 'Borttaget från era recept',
+        'saved' => [
+            'title' => 'Sparat bland era recept',
+            'body' => 'Du hittar det bland recepten i :household.',
+        ],
+        'based_on' => 'Bygger på ”:title”',
+        'open_original' => 'Öppna originalet',
+    ],
+
     'table' => [
         'recipe' => 'Recept',
         'from' => 'Från',
@@ -121,6 +147,7 @@ return [
         'untitled' => 'Namnlöst recept',
         'not_started' => 'Inte påbörjat',
         'only_saved_links' => 'Endast sparade länkar',
+        'only_saved_from_others' => 'Endast sparade från andra hushåll',
         'empty_heading' => 'Inga recept än',
         'empty_description' => 'Lägg till ett för att komma igång — en länk räcker gott.',
     ],

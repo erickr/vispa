@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Recipe extends Model
@@ -60,6 +61,54 @@ class Recipe extends Model
     }
 
     /**
+     * Another household's recipe that one of the user's households has saved, while there is
+     * still something to read: the owners keep it shared and have published a revision. Saved
+     * recipes are read-only — accessibleTo() stays the rule for editing.
+     */
+    public function scopeSavedBy(Builder $query, ?User $user): void
+    {
+        if (! $user) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $query->where(fn (Builder $query) => $query
+            ->whereHas('savedByHouseholds', fn (Builder $households) => $households
+                ->whereIn('households.id', $user->allTeams()->modelKeys()))
+            ->where($query->qualifyColumn('visibility'), '!=', 'private')
+            ->whereHas('revisions', fn (Builder $revisions) => $revisions->where('status', 'published')));
+    }
+
+    /**
+     * What a user can open to read: their own (accessibleTo()) plus what their households saved.
+     */
+    public function scopeViewableBy(Builder $query, ?User $user): void
+    {
+        $query->where(fn (Builder $query) => $query
+            ->accessibleTo($user)
+            ->orWhere(fn (Builder $query) => $query->savedBy($user)));
+    }
+
+    /**
+     * accessibleTo() for a recipe already in hand, without a query per row.
+     */
+    public function isEditableBy(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return (int) $this->owner_user_id === (int) $user->getKey()
+            || ($this->household_id !== null && in_array((int) $this->household_id, array_map('intval', $user->allTeams()->modelKeys()), true));
+    }
+
+    public function isSavedBy(?User $user): bool
+    {
+        return static::query()->savedBy($user)->whereKey($this->getKey())->exists();
+    }
+
+    /**
      * The household this recipe belongs to.
      */
     public function household(): BelongsTo
@@ -85,6 +134,16 @@ class Recipe extends Model
     public function forks(): HasMany
     {
         return $this->hasMany(Recipe::class, 'forked_from_recipe_id');
+    }
+
+    /**
+     * The households that keep this recipe in their collection without owning it.
+     */
+    public function savedByHouseholds(): BelongsToMany
+    {
+        return $this->belongsToMany(Household::class, 'household_saved_recipes')
+            ->withPivot('saved_by_user_id')
+            ->withTimestamps();
     }
 
     public function revisions(): HasMany
@@ -165,6 +224,32 @@ class Recipe extends Model
         return $revisions->firstWhere('locale', $locale)
             ?? $revisions->firstWhere('locale', $this->default_locale)
             ?? $revisions->first();
+    }
+
+    /**
+     * What someone who saved the recipe reads: the newest published revision in $locale, else in
+     * the default locale, else any. Never a draft — those are the owners' work in progress.
+     */
+    public function publishedRevision(?string $locale = null): ?RecipeRevision
+    {
+        $published = ($this->relationLoaded('revisions') ? $this->revisions : $this->revisions()->get())
+            ->where('status', 'published')
+            ->sortByDesc('version_number');
+
+        return $published->firstWhere('locale', $locale)
+            ?? $published->firstWhere('locale', $this->default_locale)
+            ?? $published->first();
+    }
+
+    /**
+     * The revision a user lands on when they open the recipe: their own newest work, or for a
+     * saved recipe the published version in their language.
+     */
+    public function revisionFor(?User $user): ?RecipeRevision
+    {
+        return $this->isEditableBy($user)
+            ? $this->displayRevision()
+            : $this->publishedRevision($user?->locale ?? app()->getLocale());
     }
 
     /**

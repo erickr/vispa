@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Recipes\SaveRecipeToHousehold;
+use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Models\Recipe;
 use App\Support\PublicLocale;
 use Illuminate\Http\Request;
@@ -48,7 +50,40 @@ class SharedRecipeController extends Controller
         return view('recipes.share', [
             'recipe' => $recipe,
             'revision' => $revision,
+            'save' => $this->saveState($request, $recipe),
             'languages' => PublicLocale::links('recipes.share', ['recipe' => $recipe->uuid], $locales, $revision->locale),
         ]);
+    }
+
+    /**
+     * What the save button says to this visitor: sign in first, save it, or — when it is already
+     * theirs or already saved — open it in the app. Nothing at all until something is published.
+     *
+     * @return array{state: string, url: string}|null
+     */
+    private function saveState(Request $request, Recipe $recipe): ?array
+    {
+        if (! SaveRecipeToHousehold::canBeSaved($recipe)) {
+            return null;
+        }
+
+        $user = $request->user();
+
+        if (! $user) {
+            return ['state' => 'guest', 'url' => route('recipes.share.sign-in', $recipe->uuid)];
+        }
+
+        $state = match (true) {
+            $recipe->isEditableBy($user) => 'own',
+            $recipe->isSavedBy($user) => 'saved',
+            default => 'save',
+        };
+
+        return [
+            'state' => $state,
+            'url' => $state === 'save'
+                ? route('recipes.share.save', $recipe->uuid)
+                : RecipeRevisionResource::getUrl('view', ['record' => $recipe->revisionFor($user)], panel: 'app'),
+        ];
     }
 }

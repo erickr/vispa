@@ -114,6 +114,32 @@ return [
         ],
     ],
 
+    // Another household's published recipe, kept in this household's collection.
+    'saved' => [
+        'badge' => 'Saved',
+        'callout_heading' => 'Saved from another household',
+        'callout_description' => 'Read it and cook from it here. It stays theirs, so you see their latest published version — to change anything, make your own version.',
+        'fork' => 'Make my own version',
+        'fork_heading' => 'Make your own version?',
+        'fork_description' => 'You get a copy of this version as a private draft in your household, to change however you like. The original stays as it is, and yours remembers where it came from.',
+        'fork_submit' => 'Make my version',
+        'forked' => [
+            'title' => 'Your own version is ready',
+            'body' => 'It is a private draft in your household — change what you like and publish it when it is done.',
+        ],
+        'remove' => 'Remove from our recipes',
+        'remove_heading' => 'Remove from your recipes?',
+        'remove_description' => 'It disappears from your household’s recipes. Versions you made of it stay yours.',
+        'remove_submit' => 'Remove',
+        'removed' => 'Removed from your recipes',
+        'saved' => [
+            'title' => 'Saved to your recipes',
+            'body' => 'You’ll find it among the recipes of :household.',
+        ],
+        'based_on' => 'Based on “:title”',
+        'open_original' => 'Open the original',
+    ],
+
     'table' => [
         'recipe' => 'Recipe',
         'from' => 'From',
@@ -123,6 +149,7 @@ return [
         'untitled' => 'Untitled recipe',
         'not_started' => 'Not started',
         'only_saved_links' => 'Only saved links',
+        'only_saved_from_others' => 'Only saved from other households',
         'empty_heading' => 'No recipes yet',
         'empty_description' => 'Add one to get started — a link on its own is plenty.',
     ],

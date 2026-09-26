@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\HasUuid;
 use Database\Factories\HouseholdFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 use Laravel\Jetstream\Events\TeamCreated;
 use Laravel\Jetstream\Events\TeamDeleted;
@@ -62,6 +63,16 @@ class Household extends JetstreamTeam
         $this->users()->detach();
 
         $this->delete();
+    }
+
+    /**
+     * Other households' recipes kept here to read and cook from (see Recipe::scopeSavedBy()).
+     */
+    public function savedRecipes(): BelongsToMany
+    {
+        return $this->belongsToMany(Recipe::class, 'household_saved_recipes')
+            ->withPivot('saved_by_user_id')
+            ->withTimestamps();
     }
 
     /**

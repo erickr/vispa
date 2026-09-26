@@ -37,6 +37,25 @@
         <p>{{ $revision->description }}</p>
     @endif
 
+    {{-- Keep it in your own household's recipes: read-only there, with a way to make it yours. --}}
+    @if ($save)
+        <div class="save">
+            @if ($save['state'] === 'save')
+                <form method="POST" action="{{ $save['url'] }}">
+                    @csrf
+                    <button type="submit" class="primary">{{ __('share.save.action') }}</button>
+                </form>
+                <span class="muted">{{ __('share.save.hint') }}</span>
+            @elseif ($save['state'] === 'guest')
+                <a class="primary" href="{{ $save['url'] }}">{{ __('share.save.sign_in') }}</a>
+                <span class="muted">{{ __('share.save.hint') }}</span>
+            @else
+                <a href="{{ $save['url'] }}">{{ __('share.save.open') }}</a>
+                <span class="muted">{{ __('share.save.'.$save['state']) }}</span>
+            @endif
+        </div>
+    @endif
+
     @if ($recipe->source_url || $revision->source_credit)
         <a class="source" @if ($recipe->source_url) href="{{ $recipe->source_url }}" rel="nofollow noopener" @endif>
             <strong>{{ $revision->source_credit ?: $recipe->sourceHost() }}</strong>
