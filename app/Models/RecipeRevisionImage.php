@@ -12,6 +12,18 @@ class RecipeRevisionImage extends Model
 
     public const UPDATED_AT = null;
 
+    /**
+     * The photo formats we store, keyed by MIME type with the extension to save them under.
+     * Raster only: an SVG can carry script, and these files are served from our own origin.
+     */
+    public const ALLOWED_TYPES = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        'image/gif' => 'gif',
+        'image/avif' => 'avif',
+    ];
+
     protected $fillable = [
         'uuid',
         'recipe_revision_id',

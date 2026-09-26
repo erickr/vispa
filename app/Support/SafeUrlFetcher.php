@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\RecipeRevisionImage;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Psr\Http\Message\UriInterface;
@@ -40,13 +41,7 @@ class SafeUrlFetcher
         $response = $this->get($url);
         $type = strtolower(trim(explode(';', (string) $response->header('Content-Type'))[0]));
 
-        $extension = [
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-            'image/webp' => 'webp',
-            'image/gif' => 'gif',
-            'image/avif' => 'avif',
-        ][$type] ?? null;
+        $extension = RecipeRevisionImage::ALLOWED_TYPES[$type] ?? null;
 
         if ($extension === null) {
             throw new RuntimeException("Not an image ({$type}).");
