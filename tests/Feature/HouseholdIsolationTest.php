@@ -10,15 +10,18 @@ use App\Filament\Resources\RecipeRevisions\Pages\EditRecipeRevision;
 use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Filament\Resources\Recipes\Pages\CreateRecipe;
 use App\Filament\Resources\Recipes\Pages\EditRecipe;
+use App\Filament\Resources\Recipes\Pages\ImportRecipeStatus;
 use App\Filament\Resources\Recipes\Pages\ListRecipes;
 use App\Filament\Resources\Recipes\RecipeResource;
 use App\Models\Ingredient;
 use App\Models\Recipe;
+use App\Models\RecipeImport;
 use App\Models\RecipeRevision;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -306,5 +309,40 @@ class HouseholdIsolationTest extends TestCase
         $this->assertFalse(Ingredient::visibleTo($anna)->whereKey($ericsIngredient)->exists());
         // What Anna wrote herself stays hers.
         $this->assertTrue(Recipe::accessibleTo($anna)->whereKey($this->kronaRecipe)->exists());
+    }
+
+    public function test_after_leaving_a_failed_import_cannot_be_retried_into_the_households_recipe(): void
+    {
+        Queue::fake();
+        config(['services.anthropic.key' => 'test-key']);
+
+        $ericsRecipe = $this->recipeBy($this->eric, 'Eric stew');
+        $revision = $this->revisionOf($ericsRecipe);
+        $failed = RecipeImport::create([
+            'user_id' => $this->anna->getKey(),
+            'source_type' => 'url',
+            'source_url' => 'https://www.ica.se/recept/eric-stew/',
+            'status' => RecipeImport::STATUS_FAILED,
+            'recipe_id' => $ericsRecipe->getKey(),
+            'recipe_revision_id' => $revision->getKey(),
+        ]);
+
+        // While she is a member, the retry fills the same recipe again.
+        $this->actingAs($this->anna);
+
+        Livewire::test(ImportRecipeStatus::class, ['import' => $failed])
+            ->call('retry')
+            ->assertRedirect();
+
+        $this->assertSame($revision->getKey(), RecipeImport::latest('id')->first()->recipe_revision_id);
+
+        $this->eric->currentTeam->removeUser($this->anna);
+        $this->actingAs($this->anna->fresh());
+
+        Livewire::test(ImportRecipeStatus::class, ['import' => $failed])
+            ->call('retry')
+            ->assertForbidden();
+
+        $this->assertSame(2, RecipeImport::count());
     }
 }

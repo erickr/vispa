@@ -23,6 +23,7 @@ return [
         'source_url' => 'Source link',
         'source_url_placeholder' => 'https://www.ica.se/recept/...',
         'source_url_helper' => 'Where it came from. A link on its own is a complete recipe — ingredients and instructions are optional.',
+        'source_url_invalid' => 'Enter a web address starting with http:// or https://.',
         'title' => 'Title',
         'import_from_source' => 'Import the recipe from this link',
         'import_from_source_helper' => 'Vispa reads the page and fills in the ingredients, steps and photo as a draft. What you have already written stays.',

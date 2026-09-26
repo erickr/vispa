@@ -9,6 +9,7 @@ use App\Models\RecipeImport;
 use Filament\Resources\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Shown while a recipe import runs on the queue. Polls the import row and opens the new draft
@@ -46,8 +47,15 @@ class ImportRecipeStatus extends Page
     {
         abort_unless($this->import->status === RecipeImport::STATUS_FAILED, 400);
 
-        // Into the same recipe again, if that is what the failed attempt was filling.
-        if ($import = ImportRecipe::startOrNotify(Auth::user(), $this->import->source_url, $this->import->revision)) {
+        // Into the same recipe again, if that is what the failed attempt was filling — as long as
+        // the user may still edit it (they may have left its household since).
+        $into = $this->import->revision;
+
+        if ($into) {
+            Gate::authorize('update', $into);
+        }
+
+        if ($import = ImportRecipe::startOrNotify(Auth::user(), $this->import->source_url, $into)) {
             $this->redirect(RecipeResource::getUrl('import', ['import' => $import]));
         }
     }

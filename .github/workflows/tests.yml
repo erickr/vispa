@@ -66,6 +66,12 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
+      # Fails on any known vulnerability in composer.lock. Composer also fails
+      # on abandoned packages by default; those are reported but don't fail the
+      # build, since an abandoned package is a prompt to plan a swap, not a hole.
+      - name: Audit Composer dependencies
+        run: composer audit --no-interaction --abandoned=report
+
       - name: Prepare the environment
         run: |
           cp .env.example .env
@@ -77,6 +83,13 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
+
+      # Production dependencies only, failing on high or critical. Every npm
+      # package today is a build-time devDependency whose output is static
+      # files, so this mostly guards against a runtime dependency added later;
+      # dev advisories are left to Dependabot.
+      - name: Audit npm dependencies
+        run: npm audit --omit=dev --audit-level=high
 
       # The public pages load their CSS through @vite, so the build manifest
       # has to exist before any test renders one.
@@ -115,9 +128,11 @@ jobs:
           coverage: none
 
       # Also runs filament:upgrade via post-autoload-dump, which publishes
-      # Filament's assets into public/.
+      # Filament's assets into public/. Only public/ leaves this job, and
+      # Filament is a production dependency, so the dev packages are skipped
+      # here as they are on the server.
       - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
       # Vite 8 requires Node 20+.
       - name: Set up Node
