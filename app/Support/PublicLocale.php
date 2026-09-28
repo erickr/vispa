@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Illuminate\Contracts\Session\Session;
 use Illuminate\Http\Request;
 
 /**
@@ -34,11 +35,11 @@ class PublicLocale
         $chosen = $request->query('lang');
 
         if (SupportedLocales::isSupported($chosen)) {
-            $request->session()->put(static::SESSION_KEY, $chosen);
+            static::session($request)->put(static::SESSION_KEY, $chosen);
         }
 
         $preferences = array_filter([
-            $request->session()->get(static::SESSION_KEY),
+            static::session($request)->get(static::SESSION_KEY),
             $request->getPreferredLanguage($available),
         ]);
 
@@ -49,6 +50,15 @@ class PublicLocale
         }
 
         return $available[0];
+    }
+
+    /**
+     * The request's session, else the app's own store: a request that did not pass through the
+     * web middleware (a Livewire component mounted in a test) has none attached.
+     */
+    private static function session(Request $request): Session
+    {
+        return $request->hasSession() ? $request->session() : app('session.store');
     }
 
     /**

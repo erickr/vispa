@@ -4,11 +4,11 @@ namespace Tests\Feature;
 
 use App\Actions\Households\CreatePersonalHousehold;
 use App\Filament\Pages\Auth\EditProfile;
+use App\Filament\Pages\Auth\Register;
 use App\Models\Recipe;
 use App\Models\User;
 use Filament\Auth\Notifications\VerifyEmail;
 use Filament\Auth\Notifications\VerifyEmailChange;
-use Filament\Auth\Pages\Register;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;

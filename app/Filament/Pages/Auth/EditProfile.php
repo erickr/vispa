@@ -2,14 +2,14 @@
 
 namespace App\Filament\Pages\Auth;
 
-use App\Support\SupportedLocales;
+use App\Filament\Pages\Auth\Concerns\HasLocaleField;
 use Filament\Auth\Pages\EditProfile as BaseEditProfile;
-use Filament\Forms\Components\Select;
-use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
 
 class EditProfile extends BaseEditProfile
 {
+    use HasLocaleField;
+
     public function form(Schema $schema): Schema
     {
         return $schema->components([
@@ -20,19 +20,6 @@ class EditProfile extends BaseEditProfile
             $this->getPasswordConfirmationFormComponent(),
             $this->getCurrentPasswordFormComponent(),
         ]);
-    }
-
-    protected function getLocaleFormComponent(): Component
-    {
-        return Select::make('locale')
-            ->label(__('profile.locale.label'))
-            ->helperText(__('profile.locale.helper_text'))
-            ->options(SupportedLocales::options())
-            ->default(SupportedLocales::DEFAULT)
-            ->selectablePlaceholder(false)
-            ->native(false)
-            ->required()
-            ->in(SupportedLocales::codes());
     }
 
     /**

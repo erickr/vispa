@@ -3,8 +3,12 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\EditProfile;
+use App\Filament\Pages\Auth\Register;
 use App\Filament\Resources\Recipes\RecipeResource;
+use App\Http\Middleware\SetGuestLocale;
 use App\Http\Middleware\SetUserLocale;
+use App\Support\PublicLocale;
+use Filament\Auth\Pages\Login;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -34,7 +38,7 @@ class AppPanelProvider extends PanelProvider
             ->path('app')
             ->viteTheme('resources/css/filament/app/theme.css')
             ->login()
-            ->registration()
+            ->registration(Register::class)
             // Registration is open, so an account has to prove its address before it can do
             // anything, above all start paid imports. The change check sends a new address a
             // link and keeps the old one until it is clicked — the catalog admin is known by
@@ -94,6 +98,13 @@ class AppPanelProvider extends PanelProvider
                     ->url(fn (): string => RecipeResource::getUrl('index').'?action=importFromLink'),
             ])
             ->renderHook(PanelsRenderHook::FOOTER, fn () => view('filament.version'))
+            // The language toggle on the signed-out pages, each link back to the same page.
+            ->renderHook(PanelsRenderHook::SIMPLE_LAYOUT_START, fn () => view('filament.language-switcher', [
+                'languages' => PublicLocale::links('filament.app.auth.login'),
+            ]), scopes: Login::class)
+            ->renderHook(PanelsRenderHook::SIMPLE_LAYOUT_START, fn () => view('filament.language-switcher', [
+                'languages' => PublicLocale::links('filament.app.auth.register'),
+            ]), scopes: Register::class)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -114,6 +125,11 @@ class AppPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
+            // Persistent, so a Livewire update on the login or registration page (a failed
+            // attempt, validation messages) is answered in the same language as the page.
+            ->middleware([
+                SetGuestLocale::class,
+            ], isPersistent: true)
             ->authMiddleware([
                 Authenticate::class,
                 // After Authenticate, so the user is resolved and their language choice applies.
