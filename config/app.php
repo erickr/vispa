@@ -27,7 +27,9 @@ return [
     |
     */
 
-    'deploy_number' => (int) (@file_get_contents(base_path('DEPLOY_NUMBER')) ?: 0),
+    'deploy_number' => is_file(base_path('DEPLOY_NUMBER'))
+        ? (int) file_get_contents(base_path('DEPLOY_NUMBER'))
+        : 0,
 
     /*
     |--------------------------------------------------------------------------
