@@ -123,6 +123,9 @@ return [
         'timer' => 'Timer',
         'no_photo_description' => 'No description',
         'not_published' => 'Not published',
+        'last_rating' => 'Last rating',
+        'rating_value' => ':rating of 5 · :label',
+        'rated_at' => 'Rated :date (:ago)',
     ],
 
     'published_choice' => [

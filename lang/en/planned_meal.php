@@ -31,6 +31,15 @@ return [
         'remove' => 'Remove',
         'remove_heading' => 'Remove from the plan?',
         'remove_description' => 'Only the plan changes. The recipe stays in your recipes.',
+        'rating' => 'How was it?',
+        'rating_helper' => 'Optional. Leave it empty if you did not cook it.',
+        'rating_labels' => [
+            1 => 'Not again',
+            2 => 'Meh',
+            3 => 'Good',
+            4 => 'Really good',
+            5 => 'A favourite',
+        ],
     ],
 
     'table' => [
@@ -45,6 +54,8 @@ return [
 
     'notifications' => [
         'planned' => ':dish is on the plan.',
+        'removed' => ':dish is off the plan.',
+        'removed_rated' => ':dish is off the plan, rated :rating of 5.',
     ],
 
 ];

@@ -31,6 +31,15 @@ return [
         'remove' => 'Ta bort',
         'remove_heading' => 'Ta bort från planen?',
         'remove_description' => 'Bara planen ändras. Receptet finns kvar bland era recept.',
+        'rating' => 'Hur blev det?',
+        'rating_helper' => 'Valfritt. Lämna tomt om ni inte lagade den.',
+        'rating_labels' => [
+            1 => 'Aldrig igen',
+            2 => 'Sådär',
+            3 => 'Gott',
+            4 => 'Riktigt gott',
+            5 => 'En favorit',
+        ],
     ],
 
     'table' => [
@@ -45,6 +54,8 @@ return [
 
     'notifications' => [
         'planned' => ':dish finns nu i planen.',
+        'removed' => ':dish är borttagen från planen.',
+        'removed_rated' => ':dish är borttagen från planen, betyg :rating av 5.',
     ],
 
 ];

@@ -4,14 +4,16 @@ namespace Tests\Feature;
 
 use App\Actions\Households\CreatePersonalHousehold;
 use App\Actions\Meals\PlanMeal;
+use App\Actions\Meals\RemovePlannedMeal;
 use App\Filament\Resources\PlannedMeals\Pages\ListPlannedMeals;
 use App\Filament\Resources\PlannedMeals\PlannedMealResource;
 use App\Filament\Resources\PlannedMeals\Schemas\PlanMealForm;
+use App\Filament\Resources\RecipeRevisions\Pages\ViewRecipeRevision;
 use App\Models\Household;
 use App\Models\PlannedMeal;
 use App\Models\Recipe;
+use App\Models\RecipeRating;
 use App\Models\User;
-use Filament\Actions\DeleteAction;
 use Filament\Facades\Filament;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -168,7 +170,7 @@ class PlannedMealsTest extends TestCase
         $this->actingAs($anna);
         Livewire::test(ListPlannedMeals::class)
             ->assertCanSeeTableRecords([$meal])
-            ->callTableAction(DeleteAction::class, $meal);
+            ->callTableAction('remove', $meal);
         $this->assertModelMissing($meal);
         // Taking it off the plan leaves the recipe.
         $this->assertSame(1, Recipe::count());
@@ -205,5 +207,120 @@ class PlannedMealsTest extends TestCase
             ->assertHasNoTableActionErrors();
 
         $this->assertSame(today()->addDays(3)->toDateString(), $meal->fresh()->planned_for->toDateString());
+    }
+
+    public function test_a_meal_can_be_removed_with_a_rating(): void
+    {
+        $eric = $this->userWithHousehold('Eric Krona');
+        $meal = app(PlanMeal::class)->newDish($eric, 'Tacos');
+        $revision = $meal->recipe->revisions()->sole();
+
+        $this->actingAs($eric);
+        Livewire::test(ListPlannedMeals::class)
+            ->callTableAction('remove', $meal, ['rating' => 4])
+            ->assertHasNoTableActionErrors();
+
+        $this->assertModelMissing($meal);
+        $rating = RecipeRating::sole();
+        $this->assertSame(4, $rating->rating);
+        $this->assertTrue($rating->recipe->is($meal->recipe));
+        $this->assertTrue($rating->revision->is($revision));
+        $this->assertSame($eric->current_household_id, $rating->household_id);
+        $this->assertSame($eric->getKey(), $rating->rated_by_user_id);
+    }
+
+    public function test_the_rating_is_optional_since_the_dish_may_not_have_been_cooked(): void
+    {
+        $eric = $this->userWithHousehold('Eric Krona');
+        $meal = app(PlanMeal::class)->newDish($eric, 'Tacos');
+
+        $this->actingAs($eric);
+        Livewire::test(ListPlannedMeals::class)
+            ->callTableAction('remove', $meal)
+            ->assertHasNoTableActionErrors();
+
+        $this->assertModelMissing($meal);
+        $this->assertSame(0, RecipeRating::count());
+    }
+
+    public function test_a_rating_must_be_between_one_and_five(): void
+    {
+        $eric = $this->userWithHousehold('Eric Krona');
+        $meal = app(PlanMeal::class)->newDish($eric, 'Tacos');
+
+        $this->actingAs($eric);
+        Livewire::test(ListPlannedMeals::class)
+            ->callTableAction('remove', $meal, ['rating' => 6])
+            ->assertHasTableActionErrors(['rating']);
+
+        $this->assertModelExists($meal);
+        $this->assertSame(0, RecipeRating::count());
+    }
+
+    public function test_a_stranger_cannot_remove_or_rate_another_households_meal(): void
+    {
+        $meal = app(PlanMeal::class)->newDish($this->userWithHousehold('Eric Krona'), 'Tacos');
+
+        try {
+            app(RemovePlannedMeal::class)->handle($this->userWithHousehold('Sam Stranger'), $meal, 5);
+            $this->fail('A stranger removed the meal.');
+        } catch (AuthorizationException) {
+        }
+
+        $this->assertModelExists($meal);
+        $this->assertSame(0, RecipeRating::count());
+    }
+
+    public function test_the_recipe_shows_the_households_last_rating_and_when_it_was_given(): void
+    {
+        $eric = $this->userWithHousehold('Eric Krona');
+        $recipe = $this->recipeBy($eric, 'Tacos');
+        $revision = $recipe->revisions()->sole();
+
+        $this->travelTo(now()->setDate(2026, 9, 1));
+        app(RemovePlannedMeal::class)->handle($eric, app(PlanMeal::class)->recipe($eric, $recipe), 2);
+        $this->travelTo(now()->setDate(2026, 9, 20));
+        app(RemovePlannedMeal::class)->handle($eric, app(PlanMeal::class)->recipe($eric, $recipe), 5);
+
+        $this->actingAs($eric);
+        Livewire::test(ViewRecipeRevision::class, ['record' => $revision->getKey()])
+            ->assertSee('Last rating')
+            ->assertSee('5 of 5 · A favourite')
+            ->assertSee('20 September 2026')
+            ->assertDontSee('2 of 5');
+    }
+
+    public function test_no_rating_is_shown_before_the_dish_has_been_rated(): void
+    {
+        $eric = $this->userWithHousehold('Eric Krona');
+        $revision = $this->recipeBy($eric, 'Tacos')->revisions()->sole();
+
+        $this->actingAs($eric);
+        Livewire::test(ViewRecipeRevision::class, ['record' => $revision->getKey()])
+            ->assertDontSee('Last rating');
+    }
+
+    public function test_the_rating_is_hidden_while_the_user_is_in_another_household(): void
+    {
+        $eric = $this->userWithHousehold('Eric Krona');
+        $home = $eric->currentTeam;
+        $recipe = $this->recipeBy($eric, 'Tacos');
+        app(RemovePlannedMeal::class)->handle($eric, app(PlanMeal::class)->recipe($eric, $recipe), 4);
+
+        $this->assertNotNull($recipe->latestRatingFor($eric));
+
+        // Still Eric's recipe, but he is looking from another household now.
+        $other = $this->userWithHousehold('Anna Krona');
+        $eric = $this->join($eric->fresh(), $other->currentTeam);
+        $this->assertTrue($eric->current_household_id === $other->current_household_id);
+
+        $this->assertNull($recipe->latestRatingFor($eric));
+
+        $this->actingAs($eric);
+        Livewire::test(ViewRecipeRevision::class, ['record' => $recipe->revisions()->sole()->getKey()])
+            ->assertDontSee('Last rating');
+
+        $eric->fresh()->switchTeam($home);
+        $this->assertNotNull($recipe->latestRatingFor($eric->fresh()));
     }
 }

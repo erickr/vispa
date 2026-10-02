@@ -2,14 +2,17 @@
 
 namespace App\Filament\Resources\PlannedMeals\Tables;
 
+use App\Actions\Meals\RemovePlannedMeal;
 use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Models\PlannedMeal;
+use App\Models\RecipeRating;
 use App\Models\RecipeRevision;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\ToggleButtons;
+use Filament\Notifications\Notification;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
@@ -78,11 +81,41 @@ class PlannedMealsTable
                     ])
                     ->action(fn (PlannedMeal $record, array $data) => $record->update(['planned_for' => $data['planned_for'] ?? null])),
 
-                DeleteAction::make()
+                Action::make('remove')
                     ->label(__('planned_meal.actions.remove'))
                     ->icon(Heroicon::OutlinedXMark)
+                    ->color('danger')
+                    ->authorize('delete')
                     ->modalHeading(__('planned_meal.actions.remove_heading'))
-                    ->modalDescription(__('planned_meal.actions.remove_description')),
+                    ->modalDescription(__('planned_meal.actions.remove_description'))
+                    ->modalSubmitActionLabel(__('planned_meal.actions.remove'))
+                    ->schema([
+                        ToggleButtons::make('rating')
+                            ->label(__('planned_meal.actions.rating'))
+                            ->helperText(__('planned_meal.actions.rating_helper'))
+                            ->options(collect(range(RecipeRating::MIN, RecipeRating::MAX))
+                                ->mapWithKeys(fn (int $rating): array => [
+                                    $rating => $rating.' · '.__("planned_meal.actions.rating_labels.{$rating}"),
+                                ])
+                                ->all())
+                            ->icons(array_fill_keys(range(RecipeRating::MIN, RecipeRating::MAX), Heroicon::OutlinedStar))
+                            ->inline()
+                            ->nullable()
+                            ->in(range(RecipeRating::MIN, RecipeRating::MAX)),
+                    ])
+                    ->action(function (PlannedMeal $record, array $data): void {
+                        $dish = self::revision($record)?->title ?? __('recipe.table.untitled');
+                        $rating = filled($data['rating'] ?? null) ? (int) $data['rating'] : null;
+
+                        app(RemovePlannedMeal::class)->handle(Auth::user(), $record, $rating);
+
+                        Notification::make()
+                            ->title($rating === null
+                                ? __('planned_meal.notifications.removed', ['dish' => $dish])
+                                : __('planned_meal.notifications.removed_rated', ['dish' => $dish, 'rating' => $rating]))
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -121,6 +121,9 @@ return [
         'timer' => 'Timer',
         'no_photo_description' => 'Ingen beskrivning',
         'not_published' => 'Inte publicerad',
+        'last_rating' => 'Senaste betyg',
+        'rating_value' => ':rating av 5 · :label',
+        'rated_at' => 'Betygsatt :date (:ago)',
     ],
 
     'published_choice' => [
