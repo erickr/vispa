@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\RecipeRevisions\Schemas;
 
 use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
+use App\Models\RecipeRating;
 use App\Models\RecipeRevision;
 use App\Models\RecipeRevisionIngredient;
 use App\Models\RecipeRevisionInstructionStep;
@@ -20,9 +21,13 @@ use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
+use WeakMap;
 
 class RecipeRevisionInfolist
 {
+    /** @var WeakMap<RecipeRevision, array{0: ?RecipeRating}>|null */
+    private static ?WeakMap $lastRatings = null;
+
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
@@ -103,6 +108,26 @@ class RecipeRevisionInfolist
                         TextEntry::make('prep_time_minutes')->label(__('revision.infolist.hands_on'))->suffix(' min')->placeholder('—'),
                         TextEntry::make('cook_time_minutes')->label(__('revision.infolist.cooking'))->suffix(' min')->placeholder('—'),
                     ]),
+
+                    // How it went the last time this household cooked it off the plan.
+                    TextEntry::make('last_rating')
+                        ->label(__('revision.infolist.last_rating'))
+                        ->icon(Heroicon::Star)
+                        ->iconColor('warning')
+                        ->state(fn (RecipeRevision $record): ?string => ($rating = self::lastRatingFor($record))
+                            ? __('revision.infolist.rating_value', [
+                                'rating' => $rating->rating,
+                                'label' => __("planned_meal.actions.rating_labels.{$rating->rating}"),
+                            ])
+                            : null)
+                        ->helperText(fn (RecipeRevision $record): ?string => ($rating = self::lastRatingFor($record))
+                            ? __('revision.infolist.rated_at', [
+                                'date' => $rating->created_at->translatedFormat('j F Y'),
+                                'ago' => $rating->created_at->diffForHumans(),
+                            ])
+                            : null)
+                        ->visible(fn (RecipeRevision $record): bool => self::lastRatingFor($record) !== null)
+                        ->columnSpanFull(),
 
                     TextEntry::make('notes')
                         ->label(__('revision.fields.notes'))
@@ -226,6 +251,17 @@ class RecipeRevisionInfolist
     private static function canChange(RecipeRevision $record): bool
     {
         return Auth::user()?->can('update', $record) ?? false;
+    }
+
+    /**
+     * The entry asks three times per render (visible, state, helper text); look it up once per
+     * record. Held weakly, so it goes with the record — wrapped, so "no rating" is cached too.
+     */
+    private static function lastRatingFor(RecipeRevision $record): ?RecipeRating
+    {
+        self::$lastRatings ??= new WeakMap;
+
+        return (self::$lastRatings[$record] ??= [$record->recipe?->latestRatingFor(Auth::user())])[0];
     }
 
     /**

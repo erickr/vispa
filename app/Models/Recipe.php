@@ -166,6 +166,31 @@ class Recipe extends Model
             ->withTimestamps();
     }
 
+    /**
+     * How it turned out each time a household cooked it off its plan (see RecipeRating).
+     */
+    public function ratings(): HasMany
+    {
+        return $this->hasMany(RecipeRating::class);
+    }
+
+    /**
+     * The owning household's most recent rating, shown only while the user is in that household:
+     * another household's verdict is theirs, and a household that saved the recipe keeps its own.
+     */
+    public function latestRatingFor(?User $user): ?RecipeRating
+    {
+        if (! $user || $this->household_id === null || (int) $this->household_id !== (int) $user->current_household_id) {
+            return null;
+        }
+
+        return $this->ratings()
+            ->where('household_id', $this->household_id)
+            ->latest()
+            ->latest('id')
+            ->first();
+    }
+
     public function revisions(): HasMany
     {
         return $this->hasMany(RecipeRevision::class);
