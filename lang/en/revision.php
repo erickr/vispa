@@ -33,6 +33,9 @@ return [
         'description' => 'The original lives on the web. Copy bits in whenever you feel like it.',
         'description_short' => 'The original lives on the web.',
         'open' => 'Open the original',
+        'add' => 'Add link',
+        'add_heading' => 'Where is the recipe?',
+        'add_submit' => 'Save link',
     ],
 
     'fields' => [
@@ -137,6 +140,7 @@ return [
     ],
 
     'notifications' => [
+        'link_added' => 'Link saved',
         'draft_copy' => [
             'title' => 'Editing draft v:version',
             'body' => 'The published version stays as it is until you publish this one.',

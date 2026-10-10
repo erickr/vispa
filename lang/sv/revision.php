@@ -31,6 +31,9 @@ return [
         'description' => 'Originalet finns på webben. Skriv av bitar när du känner för det.',
         'description_short' => 'Originalet finns på webben.',
         'open' => 'Öppna originalet',
+        'add' => 'Lägg till länk',
+        'add_heading' => 'Var finns receptet?',
+        'add_submit' => 'Spara länk',
     ],
 
     'fields' => [
@@ -135,6 +138,7 @@ return [
     ],
 
     'notifications' => [
+        'link_added' => 'Länken är sparad',
         'draft_copy' => [
             'title' => 'Redigerar utkast v:version',
             'body' => 'Den publicerade versionen ligger kvar som den är tills du publicerar den här.',

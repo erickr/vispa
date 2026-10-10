@@ -4,13 +4,17 @@ namespace App\Filament\Resources\RecipeRevisions\Pages;
 
 use App\Filament\Resources\RecipeRevisions\RecipeRevisionResource;
 use App\Filament\Resources\Recipes\RecipeResource;
+use App\Jobs\ImportRecipe;
 use App\Models\RecipeRevision;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
+use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class EditRecipeRevision extends EditRecord
 {
@@ -81,8 +85,80 @@ class EditRecipeRevision extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            $this->addLinkAction(),
             DeleteAction::make(),
         ];
+    }
+
+    /**
+     * A dish planned by name opens here, with nowhere to say where the recipe is. Adding the link
+     * while the revision is still empty offers to read the page into it, as the recipe's settings
+     * page does for a new link.
+     */
+    protected function addLinkAction(): Action
+    {
+        return Action::make('addLink')
+            ->label(__('revision.source.add'))
+            ->icon(Heroicon::OutlinedLink)
+            ->color('gray')
+            ->visible(fn (): bool => blank($this->record->recipe->source_url)
+                && Auth::user()->can('update', $this->record->recipe))
+            ->modalHeading(__('revision.source.add_heading'))
+            ->modalSubmitActionLabel(__('revision.source.add_submit'))
+            ->schema([
+                TextInput::make('source_url')
+                    ->label(__('recipe.fields.source_url'))
+                    ->required()
+                    ->url()
+                    // The plain url rule also takes javascript:, data:, ftp: and more.
+                    ->rule('url:http,https')
+                    ->validationMessages(['url' => __('recipe.fields.source_url_invalid')])
+                    ->maxLength(500)
+                    ->placeholder(__('recipe.fields.source_url_placeholder')),
+
+                Checkbox::make('import_from_source')
+                    ->label(__('recipe.fields.import_from_source'))
+                    ->helperText(__('recipe.fields.import_from_source_helper'))
+                    ->default(true)
+                    ->visible(fn (): bool => $this->offersImport()),
+            ])
+            ->action(function (array $data): void {
+                $recipe = $this->record->recipe;
+                Gate::authorize('update', $recipe);
+
+                // Checked again on submit: the box may have shown before someone filled the recipe in.
+                $import = ($data['import_from_source'] ?? false) && $this->offersImport();
+
+                // What was typed in the editor goes with the link rather than being lost to the
+                // status page.
+                if ($import) {
+                    $this->save(shouldRedirect: false, shouldSendSavedNotification: false);
+                }
+
+                $recipe->update(['source_url' => trim($data['source_url'])]);
+
+                if (! $import) {
+                    Notification::make()->title(__('revision.notifications.link_added'))->success()->send();
+
+                    return;
+                }
+
+                // A closure, as a published revision is forked first: over the import limit, the
+                // link is saved and nothing else changes.
+                $started = ImportRecipe::startOrNotify(Auth::user(), $recipe->source_url, fn (): RecipeRevision => $this->record->status === 'draft'
+                    ? $this->record
+                    : $this->record->draftFork(Auth::id()));
+
+                if ($started) {
+                    $this->redirect(RecipeResource::getUrl('import', ['import' => $started]));
+                }
+            });
+    }
+
+    /** Whether there is a model to read with and nothing written yet for the page to land on. */
+    private function offersImport(): bool
+    {
+        return filled(config('services.anthropic.key')) && $this->record->isLinkOnly();
     }
 
     public function getBreadcrumb(): string
