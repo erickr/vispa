@@ -7,7 +7,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.5",
-        "anthropic-ai/sdk": "^0.50.0",
+        "anthropic-ai/sdk": "^0.55.0",
         "filament/filament": "^4.0",
         "laravel/framework": "^13.8",
         "laravel/jetstream": "^5.5",
