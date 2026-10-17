@@ -11,6 +11,7 @@ use App\Recipes\Import\RecipeExtractor;
 use App\Recipes\Import\RecipeImporter;
 use App\Recipes\Import\RecipeImportException;
 use App\Recipes\Import\RecipePageReader;
+use App\Recipes\Import\RecipePhotoReader;
 use App\Support\SafeUrlFetcher;
 use Closure;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -18,10 +19,11 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 /**
- * Fetch → read → extract (Claude) → write the draft. Runs on the queue because the model call
+ * Fetch (or load the uploaded photo) → read → extract (Claude) → write the draft. Runs on the queue because the model call
  * can take tens of seconds; the status page polls the RecipeImport row.
  */
 class ImportRecipe implements ShouldQueue
@@ -39,26 +41,26 @@ class ImportRecipe implements ShouldQueue
      * Record the attempt and queue it; the returned row is what the status page polls. With
      * $into, the page fills that link-only revision instead of becoming a new recipe.
      *
-     * Every way in comes through here, so this is where the user's import budget is spent.
+     * Every way in comes through here or startFromPhoto(), so this is where the user's import
+     * budget is spent.
      *
      * @throws ImportLimitReached when the budget is used up; nothing is recorded or queued.
      */
     public static function start(User $user, string $url, ?RecipeRevision $into = null): RecipeImport
     {
-        static::spendAllowance($user);
+        return static::record($user, ['source_type' => RecipeImport::SOURCE_URL, 'source_url' => $url], $into);
+    }
 
-        $import = RecipeImport::create([
-            'user_id' => $user->getKey(),
-            'source_type' => 'url',
-            'source_url' => $url,
-            'status' => RecipeImport::STATUS_PENDING,
-            'recipe_id' => $into?->recipe_id,
-            'recipe_revision_id' => $into?->getKey(),
-        ]);
-
-        static::dispatch($import);
-
-        return $import;
+    /**
+     * start() for a photo already stored on the private `local` disk (an upload under
+     * RecipeImport::PHOTO_DIRECTORY). The file is deleted once the recipe is written; a failed
+     * import keeps it so the attempt can be retried.
+     *
+     * @throws ImportLimitReached
+     */
+    public static function startFromPhoto(User $user, string $path, ?RecipeRevision $into = null): RecipeImport
+    {
+        return static::record($user, ['source_type' => RecipeImport::SOURCE_PHOTO, 'source_path' => $path], $into);
     }
 
     /**
@@ -70,10 +72,47 @@ class ImportRecipe implements ShouldQueue
      */
     public static function startOrNotify(User $user, string $url, RecipeRevision|Closure|null $into = null): ?RecipeImport
     {
+        return static::orNotify($user, fn (): RecipeImport => static::start($user, $url, value($into)));
+    }
+
+    /**
+     * startFromPhoto() for the panel's buttons, as startOrNotify().
+     *
+     * @param  RecipeRevision|(Closure(): RecipeRevision)|null  $into
+     */
+    public static function startFromPhotoOrNotify(User $user, string $path, RecipeRevision|Closure|null $into = null): ?RecipeImport
+    {
+        return static::orNotify($user, fn (): RecipeImport => static::startFromPhoto($user, $path, value($into)));
+    }
+
+    /**
+     * @param  array<string, string>  $source
+     *
+     * @throws ImportLimitReached
+     */
+    private static function record(User $user, array $source, ?RecipeRevision $into): RecipeImport
+    {
+        static::spendAllowance($user);
+
+        $import = RecipeImport::create($source + [
+            'user_id' => $user->getKey(),
+            'status' => RecipeImport::STATUS_PENDING,
+            'recipe_id' => $into?->recipe_id,
+            'recipe_revision_id' => $into?->getKey(),
+        ]);
+
+        static::dispatch($import);
+
+        return $import;
+    }
+
+    /** @param  Closure(): RecipeImport  $start */
+    private static function orNotify(User $user, Closure $start): ?RecipeImport
+    {
         try {
             static::ensureAllowance($user);
 
-            return static::start($user, $url, value($into));
+            return $start();
         } catch (ImportLimitReached $e) {
             $e->notification()->send();
 
@@ -119,7 +158,7 @@ class ImportRecipe implements ShouldQueue
         }
     }
 
-    public function handle(SafeUrlFetcher $fetcher, RecipePageReader $reader, RecipeExtractor $extractor, RecipeImporter $importer): void
+    public function handle(SafeUrlFetcher $fetcher, RecipePageReader $reader, RecipePhotoReader $photoReader, RecipeExtractor $extractor, RecipeImporter $importer): void
     {
         $import = $this->import;
         // Error messages are shown to the importer, so write them in their language.
@@ -127,13 +166,11 @@ class ImportRecipe implements ShouldQueue
         $import->update(['status' => RecipeImport::STATUS_RUNNING, 'error' => null]);
 
         try {
-            try {
-                $html = $fetcher->fetchPage($import->source_url);
-            } catch (Throwable $e) {
-                throw new RecipeImportException(__('recipe.import.errors.unreachable'), previous: $e);
-            }
+            $source = $import->isFromPhoto()
+                ? $photoReader->read($this->photo($import))
+                : $reader->read($this->page($fetcher, $import), $import->source_url);
 
-            $extracted = $extractor->extract($reader->read($html, $import->source_url), Unit::query()->orderBy('code')->pluck('code')->all());
+            $extracted = $extractor->extract($source, Unit::query()->orderBy('code')->pluck('code')->all());
 
             $import->fill([
                 'model' => $extracted->model,
@@ -154,12 +191,39 @@ class ImportRecipe implements ShouldQueue
                 'recipe_id' => $revision->recipe_id,
                 'recipe_revision_id' => $revision->getKey(),
             ]);
+
+            // Its content is in the recipe now; the photo itself was only ever the source.
+            if ($import->isFromPhoto()) {
+                Storage::disk('local')->delete($import->source_path);
+            }
         } catch (RecipeImportException $e) {
             $import->update(['status' => RecipeImport::STATUS_FAILED, 'error' => $e->getMessage()]);
         } catch (Throwable $e) {
             Log::error('Recipe import failed', ['import' => $import->uuid, 'error' => $e->getMessage()]);
             $import->update(['status' => RecipeImport::STATUS_FAILED, 'error' => __('recipe.import.errors.unexpected')]);
         }
+    }
+
+    /** @throws RecipeImportException */
+    private function page(SafeUrlFetcher $fetcher, RecipeImport $import): string
+    {
+        try {
+            return $fetcher->fetchPage($import->source_url);
+        } catch (Throwable $e) {
+            throw new RecipeImportException(__('recipe.import.errors.unreachable'), previous: $e);
+        }
+    }
+
+    /** @throws RecipeImportException */
+    private function photo(RecipeImport $import): string
+    {
+        $bytes = $import->source_path ? Storage::disk('local')->get($import->source_path) : null;
+
+        if ($bytes === null) {
+            throw new RecipeImportException(__('recipe.import.errors.unreadable_photo'));
+        }
+
+        return $bytes;
     }
 
     public function failed(?Throwable $e): void

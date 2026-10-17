@@ -55,7 +55,11 @@ class ImportRecipeStatus extends Page
             Gate::authorize('update', $into);
         }
 
-        if ($import = ImportRecipe::startOrNotify(Auth::user(), $this->import->source_url, $into)) {
+        $import = $this->import->isFromPhoto()
+            ? ImportRecipe::startFromPhotoOrNotify(Auth::user(), $this->import->source_path, $into)
+            : ImportRecipe::startOrNotify(Auth::user(), $this->import->source_url, $into);
+
+        if ($import) {
             $this->redirect(RecipeResource::getUrl('import', ['import' => $import]));
         }
     }

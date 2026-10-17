@@ -78,6 +78,13 @@ return [
         'retry' => 'Try again',
         'back' => 'Back to recipes',
         'total_time' => 'Total time: :minutes min.',
+        'photo' => [
+            'action' => 'Import from photo',
+            'modal_heading' => 'Import a recipe from a photo',
+            'modal_description' => 'Take or upload a photo of a cookbook page or a recipe card. Vispa reads it and fills in a draft: ingredients, steps and servings. Check it over before you publish.',
+            'field' => 'Photo',
+            'source' => 'From a photo',
+        ],
         'errors' => [
             'unreachable' => 'The page couldn’t be fetched. Check the link and try again.',
             'no_recipe' => 'No recipe was found on that page.',
@@ -86,6 +93,7 @@ return [
             'busy' => 'Recipe reading is busy right now. Try again in a minute.',
             'api' => 'Recipe reading is unavailable right now. Try again later.',
             'not_empty' => 'The recipe already has ingredients or steps, so nothing was imported over them.',
+            'unreadable_photo' => 'The photo couldn’t be opened. Try a JPEG or PNG.',
             'unexpected' => 'Something went wrong during the import.',
         ],
     ],

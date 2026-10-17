@@ -17,7 +17,7 @@
                         <p class="text-sm text-gray-600 dark:text-gray-300">{{ $import->error }}</p>
                     @endif
 
-                    <p class="truncate text-sm text-gray-500 dark:text-gray-400">{{ $import->source_url }}</p>
+                    <p class="truncate text-sm text-gray-500 dark:text-gray-400">{{ $import->isFromPhoto() ? __('recipe.import.photo.source') : $import->source_url }}</p>
                 </div>
             </div>
 

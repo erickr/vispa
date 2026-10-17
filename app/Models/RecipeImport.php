@@ -23,6 +23,13 @@ class RecipeImport extends Model
 
     public const STATUS_FAILED = 'failed';
 
+    public const SOURCE_URL = 'url';
+
+    /** An uploaded photo, kept on the private `local` disk at source_path. */
+    public const SOURCE_PHOTO = 'photo';
+
+    public const PHOTO_DIRECTORY = 'recipe-imports';
+
     protected $fillable = [
         'uuid',
         'user_id',
@@ -41,6 +48,11 @@ class RecipeImport extends Model
     public function getRouteKeyName(): string
     {
         return 'uuid';
+    }
+
+    public function isFromPhoto(): bool
+    {
+        return $this->source_type === self::SOURCE_PHOTO;
     }
 
     public function isFinished(): bool

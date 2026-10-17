@@ -76,6 +76,13 @@ return [
         'retry' => 'Försök igen',
         'back' => 'Tillbaka till recepten',
         'total_time' => 'Total tid: :minutes min.',
+        'photo' => [
+            'action' => 'Importera från foto',
+            'modal_heading' => 'Importera ett recept från ett foto',
+            'modal_description' => 'Fota eller ladda upp en bild på en kokbokssida eller ett receptkort. Vispa läser den och fyller i ett utkast: ingredienser, steg och portioner. Gå igenom det innan du publicerar.',
+            'field' => 'Foto',
+            'source' => 'Från ett foto',
+        ],
         'errors' => [
             'unreachable' => 'Sidan gick inte att hämta. Kontrollera länken och försök igen.',
             'no_recipe' => 'Hittade inget recept på sidan.',
@@ -84,6 +91,7 @@ return [
             'busy' => 'Receptläsningen är upptagen just nu. Försök igen om en minut.',
             'api' => 'Receptläsningen är inte tillgänglig just nu. Försök igen senare.',
             'not_empty' => 'Receptet har redan ingredienser eller steg, så inget importerades över dem.',
+            'unreadable_photo' => 'Fotot gick inte att öppna. Prova en JPEG eller PNG.',
             'unexpected' => 'Något gick fel under importen.',
         ],
     ],

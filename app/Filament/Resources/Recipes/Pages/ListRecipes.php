@@ -4,8 +4,10 @@ namespace App\Filament\Resources\Recipes\Pages;
 
 use App\Filament\Resources\Recipes\RecipeResource;
 use App\Jobs\ImportRecipe;
+use App\Models\RecipeImport;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Icons\Heroicon;
@@ -39,6 +41,32 @@ class ListRecipes extends ListRecords
                 ])
                 ->action(function (array $data): void {
                     if ($import = ImportRecipe::startOrNotify(Auth::user(), trim($data['url']))) {
+                        $this->redirect(RecipeResource::getUrl('import', ['import' => $import]));
+                    }
+                }),
+            // The same import, from a photo of a cookbook page or a recipe card.
+            Action::make('importFromPhoto')
+                ->label(__('recipe.import.photo.action'))
+                ->icon(Heroicon::OutlinedCamera)
+                ->color('gray')
+                ->visible(fn (): bool => filled(config('services.anthropic.key')))
+                ->modalHeading(__('recipe.import.photo.modal_heading'))
+                ->modalDescription(__('recipe.import.photo.modal_description'))
+                ->modalSubmitActionLabel(__('recipe.import.submit'))
+                ->schema([
+                    FileUpload::make('photo')
+                        ->label(__('recipe.import.photo.field'))
+                        ->image()
+                        // Only formats the model reads; image() alone also lets SVG through.
+                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+                        ->disk('local')
+                        ->directory(RecipeImport::PHOTO_DIRECTORY)
+                        ->visibility('private')
+                        ->maxSize(12288)
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    if ($import = ImportRecipe::startFromPhotoOrNotify(Auth::user(), $data['photo'])) {
                         $this->redirect(RecipeResource::getUrl('import', ['import' => $import]));
                     }
                 }),

@@ -18,6 +18,7 @@ use App\Recipes\Import\RecipeImportException;
 use App\Recipes\Import\RecipeSource;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -324,5 +325,101 @@ class RecipeImportTest extends TestCase
 
         $this->actingAs(User::factory()->create());
         $this->get(RecipeResource::getUrl('import', ['import' => $import]))->assertForbidden();
+    }
+
+    public function test_the_photo_action_stores_the_photo_privately_and_queues_an_import(): void
+    {
+        Queue::fake();
+        Storage::fake('local');
+        $this->actingAs($this->user);
+
+        Livewire::test(ListRecipes::class)
+            ->callAction('importFromPhoto', ['photo' => UploadedFile::fake()->image('kokbok.jpg', 1200, 1600)])
+            ->assertHasNoActionErrors()
+            ->assertRedirect(RecipeResource::getUrl('import', ['import' => RecipeImport::sole()]));
+
+        $import = RecipeImport::sole();
+        $this->assertSame(RecipeImport::SOURCE_PHOTO, $import->source_type);
+        $this->assertNull($import->source_url);
+        $this->assertStringStartsWith(RecipeImport::PHOTO_DIRECTORY.'/', $import->source_path);
+        Storage::disk('local')->assertExists($import->source_path);
+        Queue::assertPushed(ImportRecipe::class, fn (ImportRecipe $job) => $job->import->is($import));
+    }
+
+    public function test_the_photo_action_refuses_anything_but_an_image(): void
+    {
+        Queue::fake();
+        Storage::fake('local');
+        $this->actingAs($this->user);
+
+        Livewire::test(ListRecipes::class)
+            ->callAction('importFromPhoto', ['photo' => UploadedFile::fake()->create('recept.svg', 10, 'image/svg+xml')])
+            ->assertHasActionErrors(['photo']);
+
+        $this->assertSame(0, RecipeImport::count());
+    }
+
+    public function test_a_photo_is_read_as_an_image_and_deleted_once_the_recipe_is_written(): void
+    {
+        Storage::fake('local');
+        $this->fakeWeb();
+        $path = UploadedFile::fake()->image('kokbok.jpg', 800, 600)->store(RecipeImport::PHOTO_DIRECTORY, 'local');
+
+        $seen = null;
+        $this->app->instance(RecipeExtractor::class, new class($this->plankstek(['image_url' => '']), $seen) implements RecipeExtractor
+        {
+            public function __construct(private ExtractedRecipe $result, private ?RecipeSource &$seen) {}
+
+            public function extract(RecipeSource $source, array $unitCodes): ExtractedRecipe
+            {
+                $this->seen = $source;
+
+                return $this->result;
+            }
+        });
+
+        $import = ImportRecipe::startFromPhoto($this->user, $path)->fresh();
+
+        $this->assertSame(RecipeImport::STATUS_DONE, $import->status);
+        $this->assertSame(RecipeSource::KIND_IMAGE, $seen->kind);
+        $this->assertSame('image/jpeg', $seen->mediaType);
+        $this->assertNull($import->recipe->source_url);
+        $this->assertSame('Plankstek', $import->revision->title);
+        Storage::disk('local')->assertMissing($path);
+    }
+
+    public function test_a_failed_photo_import_keeps_the_photo_and_can_be_retried(): void
+    {
+        Storage::fake('local');
+        $this->fakeExtractor(new RecipeImportException('Hittade inget recept på bilden.'));
+        $this->actingAs($this->user);
+        $path = UploadedFile::fake()->image('kokbok.jpg')->store(RecipeImport::PHOTO_DIRECTORY, 'local');
+
+        $import = ImportRecipe::startFromPhoto($this->user, $path)->fresh();
+
+        $this->assertSame(RecipeImport::STATUS_FAILED, $import->status);
+        Storage::disk('local')->assertExists($path);
+
+        Livewire::test(ImportRecipeStatus::class, ['import' => $import])
+            ->assertSee(__('recipe.import.photo.source', locale: 'sv'))
+            ->call('retry')
+            ->assertRedirect();
+
+        $retry = RecipeImport::latest('id')->first();
+        $this->assertNotSame($import->getKey(), $retry->getKey());
+        $this->assertSame(RecipeImport::SOURCE_PHOTO, $retry->source_type);
+        $this->assertSame($path, $retry->source_path);
+    }
+
+    public function test_a_photo_that_is_not_an_image_fails_cleanly(): void
+    {
+        Storage::fake('local');
+        $this->fakeExtractor($this->plankstek());
+        Storage::disk('local')->put(RecipeImport::PHOTO_DIRECTORY.'/broken.jpg', 'not an image');
+
+        $import = ImportRecipe::startFromPhoto($this->user, RecipeImport::PHOTO_DIRECTORY.'/broken.jpg')->fresh();
+
+        $this->assertSame(RecipeImport::STATUS_FAILED, $import->status);
+        $this->assertSame(__('recipe.import.errors.unreadable_photo', locale: 'sv'), $import->error);
     }
 }
